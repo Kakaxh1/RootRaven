@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Devices | RootRaven</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">R</div>
+        <h2>RootRaven</h2>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="/" class="nav-item">
+          <span class="nav-icon">/</span>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        <a href="/devices" class="nav-item active">
+          <span class="nav-icon">></span>
+          <span class="nav-label">Devices</span>
+        </a>
+        <a href="/apps" class="nav-item">
+          <span class="nav-icon">#</span>
+          <span class="nav-label">App Listing</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div style="margin-top:12px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.05); font-size:14px; color:#aaa; letter-spacing:0.5px;">
+          Developed by<br>
+          <span style="display:block; margin-top:8px; font-size:20px; font-weight:700; color:#fff; text-shadow: 0 0 12px rgba(255,255,255,0.8); font-family:'JetBrains Mono', monospace;">Kkaxh1</span>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="top-header">
+        <h1>Device Registry</h1>
+      </header>
+
+      <div class="content">
+        <section class="card">
+          <h2>[CONFIG] Add / Configure Target</h2>
+          <form id="deviceForm" class="form-grid">
+            <input type="hidden" id="deviceId">
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <label for="deviceName" style="color:var(--text-dim); font-size:13px;">Target Identifier</label>
+              <input id="deviceName" required placeholder="e.g. Pixel 7 Lab / iPhone 14 Pro">
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <label for="deviceIp" style="color:var(--text-dim); font-size:13px;">Network IP Address</label>
+              <input id="deviceIp" required placeholder="e.g. 192.168.1.101">
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <label for="deviceType" style="color:var(--text-dim); font-size:13px;">Operating System</label>
+              <select id="deviceType">
+                <option value="android">Android Platform</option>
+                <option value="ios">Apple iOS Platform</option>
+              </select>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <label for="deviceDescription" style="color:var(--text-dim); font-size:13px;">Description (Optional)</label>
+              <input id="deviceDescription" placeholder="e.g. Lab device 01">
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <label for="deviceSshId" style="color:var(--text-dim); font-size:13px;">SSH Username (Optional)</label>
+              <input id="deviceSshId" placeholder="e.g. root">
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <label for="deviceSshPass" style="color:var(--text-dim); font-size:13px;">SSH Password (Optional)</label>
+              <input id="deviceSshPass" type="password" placeholder="e.g. alpine">
+            </div>
+            <div class="form-actions">
+              <button type="submit" style="background:var(--cyan); color:#000; font-weight:700;">Save Target Configuration</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="card">
+          <h2>[FLEET] Registered Fleet</h2>
+          <div id="deviceTableWrap" style="overflow-x:auto;"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div id="toast"></div>
+
+  <!-- Global Live Debug Console Overlay -->
+  <div id="globalDebugOverlay" class="debug-overlay">
+    <div class="debug-header">
+      <span>SERVER_LOGS::LIVE</span>
+      <button id="toggleDebugBtn" class="sm-btn">x</button>
+    </div>
+    <pre id="debugConsole" class="mono debug-console-global"></pre>
+  </div>
+  <button id="openDebugBtn" class="floating-debug-btn">Live Logs</button>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

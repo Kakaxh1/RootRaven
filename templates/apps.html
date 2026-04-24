@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>App Listing | RootRaven</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">R</div>
+        <h2>RootRaven</h2>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="/" class="nav-item">
+          <span class="nav-icon">/</span>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        <a href="/devices" class="nav-item">
+          <span class="nav-icon">></span>
+          <span class="nav-label">Devices</span>
+        </a>
+        <a href="/apps" class="nav-item active">
+          <span class="nav-icon">#</span>
+          <span class="nav-label">App Listing</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div style="margin-top:12px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.05); font-size:14px; color:#aaa; letter-spacing:0.5px;">
+          Developed by<br>
+          <span style="display:block; margin-top:8px; font-size:20px; font-weight:700; color:#fff; text-shadow: 0 0 12px rgba(255,255,255,0.8); font-family:'JetBrains Mono', monospace;">Kkaxh1</span>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="top-header">
+        <h1>Application Intel</h1>
+      </header>
+
+      <div class="content">
+        <section class="card">
+          <h2>[TARGET] Select Target Device</h2>
+          <div class="row">
+            <select id="appDeviceSelect" style="flex:1; max-width:400px;"></select>
+            <button id="refreshAppsBtn" style="border-color:var(--cyan); color:var(--cyan);">Execute frida-ps -Uai</button>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2 style="display:flex; justify-content:space-between; align-items:center;">
+            <span><span style="font-size:20px; vertical-align:middle;">[APPS]</span> Discovered Packages</span>
+            <input id="appsSearch" placeholder="Filter by package or name..." style="font-size:13px; padding:8px 12px; min-width:260px;" />
+          </h2>
+          
+          <div id="appsList" style="margin-top:20px; min-height:100px;"></div>
+
+          <div class="row" style="justify-content:space-between; margin-top:20px; align-items:center; border-top: 1px solid var(--glass-border); padding-top:20px;">
+            <button id="appsPrevBtn">< Previous Intel</button>
+            <span id="appsPageInfo" style="font-family:'JetBrains Mono'; color:var(--cyan); font-size:13px;"></span>
+            <button id="appsNextBtn">Next Intel ></button>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div id="toast"></div>
+
+  <!-- Global Live Debug Console Overlay -->
+  <div id="globalDebugOverlay" class="debug-overlay">
+    <div class="debug-header">
+      <span>SERVER_LOGS::LIVE</span>
+      <button id="toggleDebugBtn" class="sm-btn">x</button>
+    </div>
+    <pre id="debugConsole" class="mono debug-console-global"></pre>
+  </div>
+  <button id="openDebugBtn" class="floating-debug-btn">Live Logs</button>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

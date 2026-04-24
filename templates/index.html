@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard | RootRaven</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">R</div>
+        <h2>RootRaven</h2>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="/" class="nav-item active">
+          <span class="nav-icon">/</span>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        <a href="/devices" class="nav-item">
+          <span class="nav-icon">></span>
+          <span class="nav-label">Devices</span>
+        </a>
+        <a href="/apps" class="nav-item">
+          <span class="nav-icon">#</span>
+          <span class="nav-label">App Listing</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div style="margin-top:12px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.05); font-size:14px; color:#aaa; letter-spacing:0.5px;">
+          Developed by<br>
+          <span style="display:block; margin-top:8px; font-size:20px; font-weight:700; color:#fff; text-shadow: 0 0 12px rgba(255,255,255,0.8); font-family:'JetBrains Mono', monospace;">Kkaxh1</span>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="top-header">
+        <h1>Command Center</h1>
+      </header>
+
+      <div class="content">
+        <section class="card">
+          <h2>[TARGETS] Connected Targets</h2>
+          <div class="row segmented-control">
+            <input type="radio" name="osFilter" id="filterAll" value="all" checked>
+            <label for="filterAll">Globally</label>
+            <input type="radio" name="osFilter" id="filterAndroid" value="android">
+            <label for="filterAndroid">Android OS</label>
+            <input type="radio" name="osFilter" id="filterIos" value="ios">
+            <label for="filterIos">Apple iOS</label>
+          </div>
+          <div id="deviceCards" class="grid"></div>
+        </section>
+
+        <section class="card">
+          <h2>[PROXY] Proxy Intercept Settings</h2>
+          <ul>
+            <li id="proxyWifi">Configure WiFi proxy to: loading...</li>
+            <li id="proxyBurp">Configure Burp Suite listener to: <span class="mono" style="color:var(--cyan)">0.0.0.0:8080</span></li>
+          </ul>
+        </section>
+
+        <section class="card">
+          <h2>[SHELL] Secure Shell Access</h2>
+          <p>Establish persistent SSH connections to compromised or remote targets.</p>
+          <div class="row">
+            <select id="sshIp"></select>
+            <input id="sshPort" placeholder="port (8022)" value="8022" style="width:100px; min-width:80px;" />
+            <input id="sshId" placeholder="id / user" />
+            <input id="sshPass" placeholder="password" type="password" />
+          </div>
+          <div class="row">
+            <input id="sshCommand" placeholder="$ enter command (e.g. uname -a)" style="flex:1;" />
+            <button id="connectSshBtn">Connect</button>
+            <button id="runSshCmd" style="border-color:var(--cyan); color:var(--cyan);">Execute</button>
+            <button id="disconnectSshBtn">Terminate</button>
+            <button id="clearSshOut">Wipe</button>
+          </div>
+          <pre id="sshTerminalOut" class="mono debug-console"></pre>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div id="toast"></div>
+
+  <!-- Global Live Debug Console Overlay -->
+  <div id="globalDebugOverlay" class="debug-overlay">
+    <div class="debug-header">
+      <span>SERVER_LOGS::LIVE</span>
+      <button id="toggleDebugBtn" class="sm-btn">x</button>
+    </div>
+    <pre id="debugConsole" class="mono debug-console-global"></pre>
+  </div>
+  <button id="openDebugBtn" class="floating-debug-btn">Live Logs</button>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
