@@ -232,6 +232,56 @@
     </div>
   </div>
 
+  <!-- Objection Interactive Explorer Modal Popup -->
+  <div id="objectionModal" class="modal-backdrop">
+    <div class="modal" style="max-width: 680px;">
+      <div class="modal-header">
+        <h3 style="display:flex; align-items:center; gap:8px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--cyan);"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+          <span>Objection Runtime Mobile Exploration</span>
+        </h3>
+        <button type="button" class="modal-close" id="closeObjectionModalBtn" title="Close">&#x2715;</button>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:16px; margin-top:14px;">
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <span style="font-size:12px; padding:4px 10px; border-radius:6px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#fff;">Target App: <b id="objectionModalPkg" style="color:var(--cyan); font-family:'JetBrains Mono';"></b></span>
+          <span style="font-size:12px; padding:4px 10px; border-radius:6px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#fff;">Device: <b id="objectionModalDev" style="color:#3ddc84; font-family:'JetBrains Mono';"></b></span>
+        </div>
+
+        <div>
+          <label style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-dim); display:block; margin-bottom:6px;">CLI Execution Command:</label>
+          <div style="display:flex; gap:8px; align-items:center; background:#000; padding:10px 14px; border-radius:8px; border:1px solid rgba(255,255,255,0.15);">
+            <code id="objectionModalCmd" style="flex:1; font-family:'JetBrains Mono', monospace; font-size:13px; color:#00f0ff; word-break:break-all;"></code>
+            <button id="copyObjectionCmdBtn" type="button" style="background:#fff; color:#000; font-weight:700; padding:6px 14px; font-size:12px; white-space:nowrap;">Copy Command</button>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px;">
+          <button id="downloadObjectionBatBtn" type="button" style="flex:1; border-color:var(--cyan); color:var(--cyan); padding:10px; font-size:13px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:6px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <span>Download 1-Click .BAT Launcher</span>
+          </button>
+          <button id="launchObjectionDirectBtn" type="button" style="flex:1; background:var(--cyan); color:#000; font-weight:700; padding:10px; font-size:13px;">
+            <span>Spawn Desktop Terminal</span>
+          </button>
+        </div>
+
+        <div style="border-top:1px solid rgba(255,255,255,0.06); padding-top:14px;">
+          <label style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-dim); display:block; margin-bottom:8px;">Quick-Action Commands (Click to Copy):</label>
+          <div style="display:flex; flex-wrap:wrap; gap:8px;">
+            <button type="button" class="quick-chip-btn" onclick="window.__copyText('android sslpinning disable')">android sslpinning disable</button>
+            <button type="button" class="quick-chip-btn" onclick="window.__copyText('android root disable')">android root disable</button>
+            <button type="button" class="quick-chip-btn" onclick="window.__copyText('android keystore list')">android keystore list</button>
+            <button type="button" class="quick-chip-btn" onclick="window.__copyText('ios sslpinning disable')">ios sslpinning disable</button>
+            <button type="button" class="quick-chip-btn" onclick="window.__copyText('env')">env</button>
+            <button type="button" class="quick-chip-btn" onclick="window.__copyText('memory list modules')">memory list modules</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="toast"></div>
 
   <script src="{{ url_for('static', filename='app.js') }}"></script>

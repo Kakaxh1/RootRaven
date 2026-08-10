@@ -1271,30 +1271,112 @@ function renderApps(apps) {
     toast("Target app package selected: " + pkg);
   };
 
+  window.__copyText = (text) => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).catch(() => {});
+    }
+    toast("Copied to clipboard: " + text);
+  };
+
+  const objectionModal = document.getElementById("objectionModal");
+  const closeObjectionModalBtn = document.getElementById("closeObjectionModalBtn");
+  const objectionModalPkg = document.getElementById("objectionModalPkg");
+  const objectionModalDev = document.getElementById("objectionModalDev");
+  const objectionModalCmd = document.getElementById("objectionModalCmd");
+  const copyObjectionCmdBtn = document.getElementById("copyObjectionCmdBtn");
+  const downloadObjectionBatBtn = document.getElementById("downloadObjectionBatBtn");
+  const launchObjectionDirectBtn = document.getElementById("launchObjectionDirectBtn");
+
+  if (closeObjectionModalBtn && objectionModal) {
+    closeObjectionModalBtn.onclick = () => objectionModal.classList.remove("open");
+    objectionModal.addEventListener("click", (e) => {
+      if (e.target === objectionModal) objectionModal.classList.remove("open");
+    });
+  }
+
   window.__objection = async (pkg) => {
     const devSelect = document.getElementById("appDeviceSelect");
     const deviceId = devSelect ? devSelect.value : null;
-    const selectedText = devSelect && devSelect.options[devSelect.selectedIndex] ? devSelect.options[devSelect.selectedIndex].textContent.toLowerCase() : "";
-    const isIos = selectedText.includes("(ios)");
+    const selectedOpt = devSelect && devSelect.options[devSelect.selectedIndex] ? devSelect.options[devSelect.selectedIndex] : null;
+    const selectedText = selectedOpt ? selectedOpt.textContent : "Selected Device";
+    const isIos = selectedText.toLowerCase().includes("(ios)");
+
+    // Determine target args
+    let targetArg = "-d";
+    let devLabel = selectedText;
+    const allDevices = await getDevices();
+    const currentDev = allDevices.find(d => d.id === deviceId);
+    if (currentDev && currentDev.ip) {
+      const isUsb = !currentDev.ip.includes(".") && !currentDev.ip.includes(":");
+      if (isUsb) {
+        targetArg = `-S ${currentDev.ip}`;
+      } else {
+        const hostOnly = currentDev.ip.split(":")[0];
+        const portOnly = currentDev.ip.split(":")[1] || "27042";
+        targetArg = `-N -h ${hostOnly} -p ${portOnly}`;
+      }
+      devLabel = `${currentDev.name} (${currentDev.ip})`;
+    }
+
+    const fullCmd = `objection ${targetArg} -g ${pkg} explore`;
     const sslCommand = isIos ? "ios sslpinning disable" : "android sslpinning disable";
 
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(sslCommand).catch(() => {});
     }
-    toast(`Opening Objection terminal for ${pkg}... (SSL bypass copied)`);
 
+    if (objectionModalPkg) objectionModalPkg.textContent = pkg;
+    if (objectionModalDev) objectionModalDev.textContent = devLabel;
+    if (objectionModalCmd) objectionModalCmd.textContent = fullCmd;
+
+    if (copyObjectionCmdBtn) {
+      copyObjectionCmdBtn.onclick = () => window.__copyText(fullCmd);
+    }
+
+    if (downloadObjectionBatBtn) {
+      downloadObjectionBatBtn.onclick = () => {
+        const batContent = `@echo off\ntitle RootRaven - Objection (${pkg})\ncolor 0b\necho ========================================================\necho   RootRaven - Objection Interactive Security Shell\necho   Target Package: ${pkg}\necho ========================================================\necho.\necho [Tip] To disable SSL pinning, run:\necho       ${sslCommand}\necho.\necho Launching: ${fullCmd}\necho.\n${fullCmd}\necho.\necho [Session Ended] Press any key to close this terminal...\npause >nul\n`;
+        const blob = new Blob([batContent], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `run_objection_${pkg}.bat`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast("Downloaded run_objection.bat — double-click to launch terminal");
+      };
+    }
+
+    if (launchObjectionDirectBtn) {
+      launchObjectionDirectBtn.onclick = async () => {
+        toast(`Attempting to launch terminal for ${pkg}...`);
+        try {
+          const res = await api("/api/objection/launch", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ app_name: pkg, device_id: deviceId })
+          });
+          if (res && res.message) toast(res.message);
+        } catch (e) {
+          socket.emit("launch_objection", { app_name: pkg, device_id: deviceId });
+        }
+      };
+    }
+
+    if (objectionModal) {
+      objectionModal.classList.add("open");
+    }
+
+    // Also attempt server side trigger
     try {
-      const res = await api("/api/objection/launch", {
+      api("/api/objection/launch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ app_name: pkg, device_id: deviceId })
-      });
-      if (res && res.message) {
-        toast(res.message);
-      }
-    } catch (e) {
-      socket.emit("launch_objection", { app_name: pkg, device_id: deviceId });
-    }
+      }).catch(() => {});
+    } catch (e) {}
   };
 }
 

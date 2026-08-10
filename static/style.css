@@ -776,3 +776,22 @@ iframe { width: 100%; border-radius: 10px; border: 1px solid var(--glass-border)
     min-width: 100%;
   }
 }
+
+.quick-chip-btn {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #a0aec0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quick-chip-btn:hover {
+  background: rgba(0, 240, 255, 0.1);
+  border-color: var(--cyan);
+  color: var(--cyan);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.15);
+}
