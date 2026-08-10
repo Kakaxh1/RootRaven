@@ -1692,15 +1692,27 @@ function renderApps(apps) {
   box.innerHTML = `<p>Showing ${start + 1}-${Math.min(end, filtered.length)} of ${filtered.length} matched apps</p>` + shown
     .map(
       (a) => `<div class="app-item">
-        <b>${a.name}</b><br>
-        <span class="mono">${a.package}</span>
+        <b>${escapeHtml(a.name)}</b><br>
+        <span class="mono">${escapeHtml(a.package)}</span>
         <div class="inline-actions">
-          <button onclick="window.__selectPackage('${a.package}')">Select Target</button>
-          <button onclick="window.__objection('${a.package}')">Objection</button>
+          <button class="select-pkg-btn" data-package="${escapeHtml(a.package)}">Select Target</button>
+          <button class="objection-btn" data-package="${escapeHtml(a.package)}">Objection</button>
         </div>
       </div>`
     )
     .join("");
+
+  box.querySelectorAll(".select-pkg-btn").forEach(btn => {
+    btn.onclick = () => {
+      window.__selectPackage(btn.getAttribute("data-package"));
+    };
+  });
+
+  box.querySelectorAll(".objection-btn").forEach(btn => {
+    btn.onclick = () => {
+      window.__objection(btn.getAttribute("data-package"));
+    };
+  });
 
   window.__selectPackage = (pkg) => {
     const scriptPkg = document.getElementById("scriptPackageName");
