@@ -83,19 +83,18 @@
             <p>Draft, persist, and execute custom JavaScript instrumentation scripts in target application processes.</p>
             
             <div class="row" style="gap:10px; align-items:center;">
-              <select id="scriptSelect" style="flex:2; min-width:220px;"></select>
-              <input id="newScriptName" placeholder="script_name.js" style="flex:2; min-width:160px;" />
-              <button id="newScriptBtn" type="button" style="border-color:rgba(255,255,255,0.2);">+ New</button>
-              <button id="saveScriptBtn" type="button" style="background:#fff; color:#000; font-weight:700;">Save Script</button>
-              <button id="deleteScriptBtn" type="button" style="border-color:rgba(255,59,48,0.4); color:#ff6b6b;">Delete</button>
+              <select id="scriptSelect" style="flex:3; min-width:220px;"></select>
+              <button id="newScriptBtn" type="button" style="background:#fff; color:#000; font-weight:700; flex:1;">+ New Script</button>
+              <button id="editScriptBtn" type="button" style="border-color:rgba(255,255,255,0.2); flex:1;">Edit Script</button>
+              <button id="deleteScriptBtn" type="button" style="border-color:rgba(255,59,48,0.4); color:#ff6b6b; flex:1;">Delete</button>
             </div>
 
             <div style="margin-top:12px; display:flex; flex-direction:column; gap:8px;">
               <div style="display:flex; justify-content:space-between; align-items:center;">
-                <label style="font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-dim);">Hook Script Source Code (JavaScript):</label>
+                <label style="font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-dim);">Selected Hook Script Code:</label>
                 <span id="scriptStatusLabel" style="font-size:11px; font-family:'JetBrains Mono'; color:var(--text-dim);">Ready</span>
               </div>
-              <textarea id="scriptContentArea" style="width:100%; height:200px; font-family:'JetBrains Mono', monospace; font-size:12px; background:#000; color:#00f0ff; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:12px; box-sizing:border-box; resize:vertical; line-height:1.5; outline:none;" placeholder="// Write your Frida JavaScript hook here..."></textarea>
+              <textarea id="scriptContentArea" style="width:100%; height:180px; font-family:'JetBrains Mono', monospace; font-size:12px; background:#000; color:#00f0ff; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:12px; box-sizing:border-box; resize:vertical; line-height:1.5; outline:none;" placeholder="// Selected hook script preview..."></textarea>
             </div>
 
             <div class="row" style="margin-top:14px; align-items:center; gap:10px;">
@@ -204,6 +203,33 @@
         </div>
       </div>
     </main>
+  </div>
+
+  <!-- Save / Edit Frida Script Modal Popup -->
+  <div id="scriptModal" class="modal-backdrop">
+    <div class="modal" style="max-width: 660px;">
+      <div class="modal-header">
+        <h3 id="scriptModalTitle">Save Frida Hook Script</h3>
+        <button type="button" class="modal-close" id="closeScriptModalBtn" title="Close">&#x2715;</button>
+      </div>
+
+      <form id="scriptModalForm" class="modal-form">
+        <div class="field-group">
+          <label for="modalScriptName">File Name</label>
+          <input id="modalScriptName" required placeholder="e.g. bypass_security.js" style="font-family:'JetBrains Mono', monospace;" />
+        </div>
+
+        <div class="field-group">
+          <label for="modalScriptContent">File Content (JavaScript Code)</label>
+          <textarea id="modalScriptContent" required style="width:100%; height:260px; font-family:'JetBrains Mono', monospace; font-size:12px; background:#000; color:#00f0ff; border:1px solid rgba(255,255,255,0.1); border-radius:9px; padding:14px; box-sizing:border-box; resize:vertical; line-height:1.5; outline:none;" placeholder="// Write your Frida JavaScript hook here..."></textarea>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" id="cancelScriptModalBtn">Cancel</button>
+          <button type="submit" class="btn-primary" id="saveScriptModalBtn">Save Script</button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <div id="toast"></div>

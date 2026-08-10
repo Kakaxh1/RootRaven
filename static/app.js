@@ -766,11 +766,10 @@ async function renderAppsPage() {
     };
   }
 
-  // --- Frida Script Hub Binding ---
+  // --- Frida Script Hub Binding with Modal Popup ---
   const scriptSelect = document.getElementById("scriptSelect");
-  const newScriptName = document.getElementById("newScriptName");
   const newScriptBtn = document.getElementById("newScriptBtn");
-  const saveScriptBtn = document.getElementById("saveScriptBtn");
+  const editScriptBtn = document.getElementById("editScriptBtn");
   const deleteScriptBtn = document.getElementById("deleteScriptBtn");
   const scriptContentArea = document.getElementById("scriptContentArea");
   const scriptPackageName = document.getElementById("scriptPackageName");
@@ -779,8 +778,16 @@ async function renderAppsPage() {
   const fridaOutputConsole = document.getElementById("fridaOutputConsole");
   const clearFridaOutBtn = document.getElementById("clearFridaOutBtn");
 
+  const scriptModal = document.getElementById("scriptModal");
+  const scriptModalTitle = document.getElementById("scriptModalTitle");
+  const scriptModalForm = document.getElementById("scriptModalForm");
+  const modalScriptName = document.getElementById("modalScriptName");
+  const modalScriptContent = document.getElementById("modalScriptContent");
+  const closeScriptModalBtn = document.getElementById("closeScriptModalBtn");
+  const cancelScriptModalBtn = document.getElementById("cancelScriptModalBtn");
+
   if (
-    scriptSelect && newScriptName && saveScriptBtn && deleteScriptBtn &&
+    scriptSelect && newScriptBtn && deleteScriptBtn &&
     scriptContentArea && scriptPackageName && runScriptBtn && stopScriptBtn
   ) {
     let scriptList = [];
@@ -805,11 +812,66 @@ async function renderAppsPage() {
       }
     };
 
-    if (newScriptBtn) {
-      newScriptBtn.onclick = () => {
-        newScriptName.value = "my_custom_hook.js";
-        scriptContentArea.value = `// Frida Custom Instrumentation Script\nJava.perform(function() {\n    console.log("[*] Hook injected into process: " + Process.id);\n    \n    // Hook example:\n    // var Target = Java.use("com.example.MainActivity");\n    // Target.checkSecurity.implementation = function() {\n    //     console.log("[*] Bypassed checkSecurity()");\n    //     return true;\n    // };\n});\n`;
-        toast("Drafting new custom script");
+    const openScriptModal = (isEdit) => {
+      if (!scriptModal) return;
+      if (isEdit) {
+        const selected = scriptList.find(s => s.name === scriptSelect.value);
+        if (!selected) {
+          toast("Please select a script to edit");
+          return;
+        }
+        if (scriptModalTitle) scriptModalTitle.textContent = "Edit Frida Hook Script";
+        if (modalScriptName) modalScriptName.value = selected.name;
+        if (modalScriptContent) modalScriptContent.value = selected.content || scriptContentArea.value;
+      } else {
+        if (scriptModalTitle) scriptModalTitle.textContent = "Create New Frida Script";
+        if (modalScriptName) modalScriptName.value = "my_custom_hook.js";
+        if (modalScriptContent) {
+          modalScriptContent.value = `// Frida Custom Instrumentation Script\nJava.perform(function() {\n    console.log("[*] Hook injected into target application");\n    \n    // Example: Hook a Java method\n    // var TargetClass = Java.use("com.example.app.SecurityHelper");\n    // TargetClass.verifySignature.implementation = function() {\n    //     console.log("[*] Bypassed verifySignature()");\n    //     return true;\n    // };\n});\n`;
+        }
+      }
+      scriptModal.classList.add("open");
+    };
+
+    const closeScriptModal = () => {
+      if (scriptModal) scriptModal.classList.remove("open");
+    };
+
+    if (newScriptBtn) newScriptBtn.onclick = () => openScriptModal(false);
+    if (editScriptBtn) editScriptBtn.onclick = () => openScriptModal(true);
+    if (closeScriptModalBtn) closeScriptModalBtn.onclick = closeScriptModal;
+    if (cancelScriptModalBtn) cancelScriptModalBtn.onclick = closeScriptModal;
+
+    if (scriptModal) {
+      scriptModal.addEventListener("click", (e) => {
+        if (e.target === scriptModal) closeScriptModal();
+      });
+    }
+
+    if (scriptModalForm) {
+      scriptModalForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const name = modalScriptName.value.trim();
+        const content = modalScriptContent.value;
+        if (!name || !content) {
+          toast("Please provide both script name and content");
+          return;
+        }
+        try {
+          const res = await api("/api/scripts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, content })
+          });
+          toast(res.message || "Script saved successfully");
+          closeScriptModal();
+          await loadScripts();
+          const targetName = name.endsWith(".js") ? name : name + ".js";
+          scriptSelect.value = targetName;
+          scriptSelect.dispatchEvent(new Event('change'));
+        } catch (err) {
+          toast("Failed to save: " + err.message);
+        }
       };
     }
 
@@ -823,29 +885,6 @@ async function renderAppsPage() {
       const selected = scriptList.find(s => s.name === scriptSelect.value);
       if (selected) {
         scriptContentArea.value = selected.content || "";
-        newScriptName.value = selected.name;
-      }
-    };
-
-    saveScriptBtn.onclick = async () => {
-      const name = newScriptName.value.trim();
-      const content = scriptContentArea.value;
-      if (!name || !content) {
-        toast("Please provide both name and content");
-        return;
-      }
-      try {
-        const res = await api("/api/scripts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, content })
-        });
-        toast(res.message || "Script saved");
-        await loadScripts();
-        scriptSelect.value = name.endsWith(".js") ? name : name + ".js";
-        scriptSelect.dispatchEvent(new Event('change'));
-      } catch (err) {
-        toast("Failed to save: " + err.message);
       }
     };
 
@@ -855,7 +894,6 @@ async function renderAppsPage() {
       try {
         const res = await api(`/api/scripts/${scriptSelect.value}`, { method: "DELETE" });
         toast(res.message || "Script deleted");
-        newScriptName.value = "";
         await loadScripts();
       } catch (err) {
         toast("Failed to delete: " + err.message);
