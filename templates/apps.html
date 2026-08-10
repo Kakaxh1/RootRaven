@@ -46,7 +46,10 @@
 
       <div class="content">
         <section class="card">
-          <h2>[TARGET] Select Target Device</h2>
+          <h2>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; color:var(--cyan);"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+            <span>Target Device</span>
+          </h2>
           <div class="row">
             <select id="appDeviceSelect" style="flex:1; max-width:400px;"></select>
             <button id="refreshAppsBtn" style="border-color:var(--cyan); color:var(--cyan);">Execute frida-ps -Uai</button>
@@ -55,7 +58,10 @@
 
         <section class="card">
           <h2 style="display:flex; justify-content:space-between; align-items:center;">
-            <span><span style="font-size:20px; vertical-align:middle;">[APPS]</span> Discovered Packages</span>
+            <span style="display:flex; align-items:center; gap:8px;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; color:var(--cyan);"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+              <span>Discovered Packages</span>
+            </span>
             <input id="appsSearch" placeholder="Filter by package or name..." style="font-size:13px; padding:8px 12px; min-width:260px;" />
           </h2>
           
@@ -69,7 +75,10 @@
         </section>
 
         <section class="card">
-          <h2>[SCRIPTS] Frida Script Hub</h2>
+          <h2>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; color:var(--cyan);"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+            <span>Frida Script Hub</span>
+          </h2>
           <p>Inject custom javascript hooks into target application processes.</p>
           <div class="row">
             <select id="scriptSelect" style="max-width:250px;"></select>
@@ -93,7 +102,10 @@
         </section>
 
         <section class="card">
-          <h2>[STORAGE] Storage Explorer (SQLite & XML)</h2>
+          <h2>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; color:var(--cyan);"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+            <span>Storage Explorer (SQLite & XML)</span>
+          </h2>
           <p>Inspect internal application databases and SharedPreferences configurations (Android only).</p>
           <div class="row">
             <input id="storagePackageName" placeholder="Target Package Name (e.g. com.reliance.businesseasy2)" style="flex:1;" />
@@ -118,7 +130,10 @@
         </section>
 
         <section class="card">
-          <h2>[DECOMPILER] Automated APK Decompiler (JADX)</h2>
+          <h2>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; color:var(--cyan);"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            <span>Automated APK Decompiler (JADX)</span>
+          </h2>
           <p>Decompile Android APK binaries and explore Java classes source code.</p>
           <div class="row">
             <input type="file" id="decompilerFileInput" accept=".apk" style="display:none;" />
