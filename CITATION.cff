@@ -1,0 +1,38 @@
+cff-version: 1.2.0
+message: "If you use RootRaven in your security research or assessments, please cite it as below."
+type: software
+title: "RootRaven: Mobile Penetration Testing Command Center"
+abstract: >
+  RootRaven is a self-hosted web dashboard for Android and iOS penetration testing.
+  It provides ADB shell sessions, Frida dynamic instrumentation, SSL pinning bypass,
+  APK decompilation via JADX, SQLite database inspection, SharedPreference extraction,
+  SSH shell access with automatic ADB port forwarding, Burp Suite CA certificate
+  installation, and live device logcat streaming in a single browser interface.
+authors:
+  - alias: Kakaxh1
+    given-names: Kakaxh1
+    website: "https://github.com/Kakaxh1"
+repository-code: "https://github.com/Kakaxh1/RootRaven"
+url: "https://github.com/Kakaxh1/RootRaven"
+license: MIT
+keywords:
+  - mobile security
+  - android penetration testing
+  - ios penetration testing
+  - frida
+  - adb
+  - ssl pinning bypass
+  - mobile pentest
+  - dynamic analysis
+  - android security
+  - ios security
+  - security research
+  - apk decompiler
+  - jadx
+  - burp suite
+  - frida hooking
+  - mobile hacking
+  - objection
+  - android forensics
+  - red team
+  - mobile application security testing

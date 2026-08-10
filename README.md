@@ -1,6 +1,6 @@
-# RootRaven
+# RootRaven — Mobile Penetration Testing Command Center
 
-> Elite Mobile Penetration Testing Command Center
+> Self-hosted Android and iOS security testing dashboard. ADB shell, Frida hooking, SSL pinning bypass, APK decompilation, SSH shell, Burp proxy setup, and live logcat streaming in one web interface.
 
 <div align="center">
 
@@ -10,17 +10,17 @@
 ![License](https://img.shields.io/badge/License-MIT-cyan?style=for-the-badge)
 ![Status](https://img.shields.io/badge/Status-Active-success?style=for-the-badge)
 
-*A premium, self-hosted web dashboard for orchestrating mobile security assessments.*
-
 </div>
 
 ___
 
 ## Overview
 
-**RootRaven** is a high-performance, self-hosted command center for authorized mobile security testing. It provides a unified black-glass web UI to orchestrate Android and iOS devices via ADB, SSH, and Frida, all from one browser tab.
+**RootRaven** is a self-hosted web command center for Android and iOS penetration testing. It provides a unified interface for ADB device orchestration, interactive ADB shell sessions, SSH shell access, Frida dynamic instrumentation, SSL pinning bypass, APK decompilation with JADX, SQLite database inspection, SharedPreference extraction, Burp Suite CA certificate installation, and live device logcat streaming.
 
-Built for security researchers and mobile pentesters who need a fast, clean, and extensible tooling surface.
+Built for mobile security researchers, Android pentesters, and red teamers who need a fast, clean, and scriptable tooling surface running entirely on their own machine.
+
+
 
 ___
 
@@ -191,3 +191,9 @@ ___
 ## License
 
 This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
+
+___
+
+## Keywords
+
+android penetration testing, ios penetration testing, mobile security testing, frida android, frida ios, adb shell, ssl pinning bypass, burp suite android, mobile pentest tool, android hacking tool, frida hooking, apk decompiler, jadx, android forensics, mobile application security, dynamic analysis android, frida instrumentation, android red team, python security tool, android debugging, mobile security research, objection frida, android ssl bypass, frida server, android security assessment
