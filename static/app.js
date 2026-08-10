@@ -866,7 +866,7 @@ async function renderAppsPage() {
         if (res.status === "success") {
           scriptList = res.scripts || [];
           scriptSelect.innerHTML = scriptList.length
-            ? scriptList.map(s => `<option value="${s.name}">${s.name}</option>`).join("")
+            ? scriptList.map(s => `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}</option>`).join("")
             : "<option value=''>No scripts saved</option>";
           
           if (scriptList.length) {
@@ -1128,13 +1128,13 @@ async function renderAppsPage() {
             scannerFindingsList.innerHTML = `<div style="color:#3ddc84; font-size:13px;">No critical manifest vulnerabilities detected.</div>`;
           } else {
             scannerFindingsList.innerHTML = vulns.map(v => `
-              <div class="vuln-card ${v.severity.toLowerCase()}">
+              <div class="vuln-card ${escapeHtml(v.severity.toLowerCase())}">
                 <div class="vuln-card-header">
-                  <span class="vuln-title">${v.title}</span>
-                  <span class="vuln-badge ${v.severity.toLowerCase()}">${v.severity}</span>
+                  <span class="vuln-title">${escapeHtml(v.title)}</span>
+                  <span class="vuln-badge ${escapeHtml(v.severity.toLowerCase())}">${escapeHtml(v.severity)}</span>
                 </div>
-                <div class="vuln-desc">${v.description}</div>
-                <div class="vuln-remed"><b>Remediation:</b> ${v.remediation}</div>
+                <div class="vuln-desc">${escapeHtml(v.description)}</div>
+                <div class="vuln-remed"><b>Remediation:</b> ${escapeHtml(v.remediation)}</div>
               </div>
             `).join("");
           }
@@ -1187,7 +1187,7 @@ async function renderAppsPage() {
         if (res.status === "success") {
           const links = res.deeplinks || [];
           discoveredLinksSelect.innerHTML = links.length
-            ? links.map(l => `<option value="${l}">${l}</option>`).join("")
+            ? links.map(l => `<option value="${escapeHtml(l)}">${escapeHtml(l)}</option>`).join("")
             : "<option value=''>No custom schemes discovered</option>";
           if (links.length) {
             fuzzerCustomUri.value = links[0];
@@ -1413,7 +1413,7 @@ async function renderAppsPage() {
         if (res.status === "success") {
           const files = res.files || [];
           storageFileSelect.innerHTML = files.length
-            ? files.map(f => `<option value="${f}">${f}</option>`).join("")
+            ? files.map(f => `<option value="${escapeHtml(f)}">${escapeHtml(f)}</option>`).join("")
             : "<option value=''>No database or preference files discovered</option>";
           toast(`Discovered ${files.length} storage files`);
         } else {
