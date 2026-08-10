@@ -1271,13 +1271,14 @@ function renderApps(apps) {
   };
 
   window.__objection = (pkg) => {
+    const deviceId = select ? select.value : null;
     const sslCommand = deviceType === "android" ? "android sslpinning disable" : "ios sslpinning disable";
     const popupText = `After Objection opens, run:\n\n${sslCommand}\n\n(Copied to clipboard)`;
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(sslCommand).catch(() => {});
     }
     window.alert(popupText);
-    socket.emit("launch_objection", { app_name: pkg });
+    socket.emit("launch_objection", { app_name: pkg, device_id: deviceId });
   };
 }
 

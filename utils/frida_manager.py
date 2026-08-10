@@ -24,37 +24,84 @@ class FridaManager:
             return False, str(exc)
 
     def get_app_list(self, device):
-        ok, output = self._run("frida-ps -Uai")
-        if not ok:
-            return [{"name": "Error", "package": output or "Unable to run frida-ps"}]
+        device_type = device.get("type", "android") if isinstance(device, dict) else "android"
+        target_ip = device.get("ip", "") if isinstance(device, dict) else ""
+        is_usb = not target_ip or ("." not in target_ip and ":" not in target_ip)
+
+        # 1. Determine frida-ps targeting arguments
+        if is_usb and target_ip:
+            frida_cmd = f"frida-ps -D {target_ip} -ai"
+        elif not is_usb and target_ip:
+            host_port = target_ip if ":" in target_ip else f"{target_ip}:27042"
+            frida_cmd = f"frida-ps -H {host_port} -ai"
+        else:
+            frida_cmd = "frida-ps -Uai"
+
+        ok, output = self._run(frida_cmd, timeout=12)
 
         apps = []
-        for line in output.splitlines():
-            raw = line.strip()
-            if not raw or raw.startswith("PID"):
-                continue
-            if set(raw) == {"-"}:
-                continue
-            cols = raw.split()
-            if len(cols) < 3:
-                continue
-            package = cols[-1]
-            name = " ".join(cols[1:-1]).strip()
-            if package.startswith(("com.", "org.", "net.", "io.", "app.")) or "." in package:
-                apps.append({"name": name or package, "package": package, "device_type": device["type"]})
+        if ok and output:
+            for line in output.splitlines():
+                raw = line.strip()
+                if not raw or raw.startswith("PID") or set(raw) == {"-"}:
+                    continue
+                cols = raw.split()
+                if len(cols) < 2:
+                    continue
+                package = cols[-1]
+                name = " ".join(cols[1:-1]).strip() if len(cols) > 2 else package
+                if package.startswith(("com.", "org.", "net.", "io.", "app.", "in.", "my.")) or "." in package:
+                    apps.append({"name": name or package, "package": package, "device_type": device_type})
+
+        # 2. If frida-ps returned no apps and device is Android, fallback to ADB package list
+        if not apps and device_type == "android" and target_ip:
+            adb_target = f"-s {target_ip}"
+            adb_ok, adb_out = self._run(f"adb {adb_target} shell pm list packages -3", timeout=8)
+            if adb_ok and adb_out:
+                for line in adb_out.splitlines():
+                    line = line.strip()
+                    if line.startswith("package:"):
+                        pkg = line.replace("package:", "").strip()
+                        apps.append({"name": pkg.split(".")[-1].capitalize(), "package": pkg, "device_type": "android"})
+
+        if not apps:
+            err_msg = output if not ok else "No third-party packages found on selected device"
+            return [{"name": "Error", "package": err_msg or "Unable to retrieve package list"}]
+
         return apps
 
-    def launch_objection(self, package_name):
+    def launch_objection(self, package_name, device=None):
         if not package_name:
             return {"status": "error", "message": "Package name is required"}
 
-        if sys.platform.startswith("win"):
-            cmd = f'start cmd /k "objection -g {package_name} explore"'
+        target_ip = device.get("ip", "") if isinstance(device, dict) else ""
+        device_type = device.get("type", "android") if isinstance(device, dict) else "android"
+        is_usb = not target_ip or ("." not in target_ip and ":" not in target_ip)
+
+        # Build specific objection command targeting this device
+        if is_usb and target_ip:
+            # USB with specific serial ID
+            objection_target = f"--serial {target_ip}"
+        elif not is_usb and target_ip:
+            # Network target host:port
+            host_only = target_ip.split(":")[0]
+            port_only = target_ip.split(":")[1] if ":" in target_ip else "27042"
+            objection_target = f"-N -h {host_only} -p {port_only}"
+        elif device_type == "android":
+            objection_target = "-d"
         else:
-            cmd = f'python -c "import os; os.system(\'objection -g {package_name} explore\')"'
+            objection_target = ""
+
+        objection_args = f"{objection_target} -g {package_name} explore".strip()
+
+        if sys.platform.startswith("win"):
+            cmd = f'start cmd /k "objection {objection_args}"'
+        else:
+            cmd = f'python -c "import os; os.system(\'objection {objection_args}\')"'
+
         ok, output = self._run(cmd, timeout=5)
         if ok:
-            return {"status": "success", "message": f"Objection launched for {package_name}"}
+            return {"status": "success", "message": f"Objection launched for {package_name} on {target_ip or 'device'}"}
         return {"status": "error", "message": output or "Failed to launch Objection"}
 
     def bypass_ssl_pinning(self, device_type):

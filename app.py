@@ -868,7 +868,10 @@ def handle_get_apps(data):
 @socketio.on("launch_objection")
 def handle_objection(data):
     payload = data or {}
-    emit("objection_status", frida_manager.launch_objection(payload.get("app_name", "")))
+    app_name = payload.get("app_name", "")
+    device_id = payload.get("device_id")
+    device = device_manager.get_device(device_id) if device_id else None
+    emit("objection_status", frida_manager.launch_objection(app_name, device))
 
 
 @socketio.on("bypass_ssl")
