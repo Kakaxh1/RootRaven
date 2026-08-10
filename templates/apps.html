@@ -75,6 +75,7 @@
             </div>
           </section>
 
+          <!-- Frida Script Hub & Dynamic Hooking -->
           <section class="card">
             <h2>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; color:var(--cyan);"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
@@ -82,6 +83,19 @@
             </h2>
             <p>Draft, persist, and execute custom JavaScript instrumentation scripts in target application processes.</p>
             
+            <!-- One-Click Pre-Built Snippets Bar -->
+            <div style="margin-bottom:14px;">
+              <label style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-dim); display:block; margin-bottom:8px;">One-Click Pre-Built Hook Snippets:</label>
+              <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                <button type="button" class="quick-chip-btn" onclick="window.__loadSnippet('universal_ssl_bypass.js')">Universal SSL Bypass</button>
+                <button type="button" class="quick-chip-btn" onclick="window.__loadSnippet('android_root_bypass.js')">Root / Magisk Bypass</button>
+                <button type="button" class="quick-chip-btn" onclick="window.__loadSnippet('crypto_sniffer.js')">Crypto API & Key Sniffer</button>
+                <button type="button" class="quick-chip-btn" onclick="window.__loadSnippet('biometric_bypass.js')">Biometric & Fingerprint Bypass</button>
+                <button type="button" class="quick-chip-btn" onclick="window.__loadSnippet('anti_debug_bypass.js')">Anti-Debug & Tracer Evasion</button>
+                <button type="button" class="quick-chip-btn" onclick="window.__loadSnippet('ios_jb_bypass.js')">iOS Jailbreak Bypass</button>
+              </div>
+            </div>
+
             <div class="row" style="gap:10px; align-items:center;">
               <select id="scriptSelect" style="flex:3; min-width:220px;"></select>
               <button id="newScriptBtn" type="button" style="background:#fff; color:#000; font-weight:700; flex:1;">+ New Script</button>
@@ -115,6 +129,75 @@
             <div class="row" style="margin-top:16px; border-top:1px solid rgba(255,255,255,0.06); padding-top:16px; align-items:center; gap:10px;">
               <input id="memorySearchPattern" placeholder="String Pattern to scan in process memory (e.g. API_KEY, TOKEN)" style="flex:1;" />
               <button id="scanMemoryBtn" style="background:#fff; color:#000; font-weight:700;">Scan Process Memory</button>
+            </div>
+          </section>
+
+          <!-- Automated Static Vulnerability Scanner -->
+          <section class="card" id="staticScannerCard">
+            <h2>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; color:var(--cyan);"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+              <span>Automated Static Vulnerability Scanner</span>
+            </h2>
+            <p>Scan application manifest configurations, debug flags, exported components, and permissions audit.</p>
+            <div class="row" style="gap:10px;">
+              <input id="scannerPackageName" placeholder="Target Package Name (e.g. com.reliance.businesseasy2)" style="flex:3;" />
+              <button id="runScannerBtn" type="button" style="background:var(--cyan); color:#000; font-weight:700; flex:1;">Scan App Security</button>
+            </div>
+
+            <!-- Scanner Results Container -->
+            <div id="scannerResultsWrap" style="margin-top:16px; display:none;">
+              <div id="scannerSummaryBadges" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;"></div>
+              <div id="scannerFindingsList" style="display:flex; flex-direction:column; gap:10px;"></div>
+            </div>
+          </section>
+
+          <!-- Deep Link & Intent Fuzzer -->
+          <section class="card" id="intentFuzzerCard">
+            <h2>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; color:var(--cyan);"><circle cx="12" cy="12" r="10"></circle><line x1="22" y1="12" x2="18" y2="12"></line><line x1="6" y1="12" x2="2" y2="12"></line><line x1="12" y1="6" x2="12" y2="2"></line><line x1="12" y1="22" x2="12" y2="18"></line></svg>
+              <span>Deep Link & Intent Fuzzer</span>
+            </h2>
+            <p>Extract custom URL schemes and dispatch security fuzzing payloads (XSS, Path Traversal, Open Redirect).</p>
+            
+            <div class="row" style="gap:10px;">
+              <input id="fuzzerPackageName" placeholder="Target Package Name (e.g. com.reliance.businesseasy2)" style="flex:3;" />
+              <button id="discoverDeeplinksBtn" type="button" style="border-color:var(--cyan); color:var(--cyan); flex:1;">Extract Deep Links</button>
+            </div>
+
+            <div style="margin-top:14px; display:flex; flex-direction:column; gap:10px;">
+              <div class="row" style="gap:10px;">
+                <select id="discoveredLinksSelect" style="flex:2;">
+                  <option value="">No Deep Links Discovered</option>
+                </select>
+                <select id="fuzzerPayloadPreset" style="flex:1;">
+                  <option value="">Select Fuzz Payload Preset</option>
+                  <option value="../../etc/passwd">Path Traversal (../../etc/passwd)</option>
+                  <option value="https://evil.attacker.com">Open Redirect (https://evil.attacker.com)</option>
+                  <option value="<script>alert(1)</script>">XSS Payload (<script>alert(1)</script>)</option>
+                  <option value="' OR '1'='1">SQLi Payload (' OR '1'='1)</option>
+                  <option value="javascript:alert(document.cookie)">JS Protocol URI</option>
+                </select>
+              </div>
+
+              <div class="row" style="gap:10px;">
+                <input id="fuzzerCustomUri" placeholder="Target URI (e.g. myapp://login?redirect=https://evil.com)" style="flex:2;" />
+                <input id="fuzzerIntentAction" placeholder="Intent Action (default: android.intent.action.VIEW)" style="flex:1;" />
+              </div>
+
+              <div class="row" style="gap:10px;">
+                <input id="fuzzerExtraKey" placeholder="Extra Key (optional, e.g. token)" style="flex:1;" />
+                <input id="fuzzerExtraVal" placeholder="Extra Value (optional)" style="flex:1;" />
+                <button id="launchIntentFuzzBtn" type="button" style="background:#fff; color:#000; font-weight:700; padding:0 24px;">Dispatch Intent</button>
+              </div>
+            </div>
+
+            <!-- Fuzzer Live Output -->
+            <div style="margin-top:14px; border-top:1px solid rgba(255,255,255,0.06); padding-top:12px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <span style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-dim);">Fuzzer Response & Exit Status:</span>
+                <span id="fuzzerStatusBadge" style="font-size:11px; font-family:'JetBrains Mono'; color:var(--text-dim);">Idle</span>
+              </div>
+              <pre id="fuzzerOutputConsole" class="mono debug-console" style="min-height:90px; max-height:200px; font-size:11px; margin:0;"></pre>
             </div>
           </section>
 
@@ -277,6 +360,44 @@
             <button type="button" class="quick-chip-btn" onclick="window.__copyText('env')">env</button>
             <button type="button" class="quick-chip-btn" onclick="window.__copyText('memory list modules')">memory list modules</button>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Frida Injection & Execution Modal Popup -->
+  <div id="fridaInjectModal" class="modal-backdrop">
+    <div class="modal" style="max-width: 680px;">
+      <div class="modal-header">
+        <h3 style="display:flex; align-items:center; gap:8px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--cyan);"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+          <span>Frida Dynamic Hooking & Injection</span>
+        </h3>
+        <button type="button" class="modal-close" id="closeFridaInjectModalBtn" title="Close">&#x2715;</button>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:16px; margin-top:14px;">
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <span style="font-size:12px; padding:4px 10px; border-radius:6px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#fff;">Target App: <b id="fridaModalPkg" style="color:var(--cyan); font-family:'JetBrains Mono';"></b></span>
+          <span style="font-size:12px; padding:4px 10px; border-radius:6px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#fff;">Device: <b id="fridaModalDev" style="color:#3ddc84; font-family:'JetBrains Mono';"></b></span>
+        </div>
+
+        <div>
+          <label style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-dim); display:block; margin-bottom:6px;">Editable CLI Injection Command:</label>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <input id="fridaModalCmdInput" style="flex:1; font-family:'JetBrains Mono', monospace; font-size:12px; background:#000; color:#00f0ff; padding:11px 14px; border-radius:8px; border:1px solid rgba(255,255,255,0.15);" />
+            <button id="copyFridaCmdBtn" type="button" style="background:#fff; color:#000; font-weight:700; padding:11px 16px; font-size:12px; white-space:nowrap;">Copy Command</button>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px;">
+          <button id="downloadFridaBatBtn" type="button" style="flex:1; border-color:var(--cyan); color:var(--cyan); padding:10px; font-size:13px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:6px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <span>Download 1-Click .BAT Runner</span>
+          </button>
+          <button id="injectFridaWebBtn" type="button" style="flex:1; background:var(--cyan); color:#000; font-weight:700; padding:10px; font-size:13px;">
+            <span>Inject in Web Console</span>
+          </button>
         </div>
       </div>
     </div>

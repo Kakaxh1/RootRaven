@@ -795,3 +795,102 @@ iframe { width: 100%; border-radius: 10px; border: 1px solid var(--glass-border)
   color: var(--cyan);
   box-shadow: 0 0 10px rgba(0, 240, 255, 0.15);
 }
+
+/* Vulnerability Scanner Findings Card Styles */
+.vuln-card {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 4px solid #888;
+  border-radius: 8px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.vuln-card:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateX(2px);
+}
+
+.vuln-card.critical {
+  border-left-color: #ff3b30;
+  background: linear-gradient(90deg, rgba(255, 59, 48, 0.08) 0%, rgba(0, 0, 0, 0.4) 40%);
+}
+
+.vuln-card.high {
+  border-left-color: #ff9500;
+  background: linear-gradient(90deg, rgba(255, 149, 0, 0.08) 0%, rgba(0, 0, 0, 0.4) 40%);
+}
+
+.vuln-card.medium {
+  border-left-color: #ffd60a;
+  background: linear-gradient(90deg, rgba(255, 214, 10, 0.06) 0%, rgba(0, 0, 0, 0.4) 40%);
+}
+
+.vuln-card.low {
+  border-left-color: #30d158;
+  background: linear-gradient(90deg, rgba(48, 209, 88, 0.06) 0%, rgba(0, 0, 0, 0.4) 40%);
+}
+
+.vuln-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.vuln-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.vuln-badge {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.vuln-badge.critical {
+  background: rgba(255, 59, 48, 0.2);
+  color: #ff453a;
+  border: 1px solid rgba(255, 59, 48, 0.4);
+}
+
+.vuln-badge.high {
+  background: rgba(255, 149, 0, 0.2);
+  color: #ff9f0a;
+  border: 1px solid rgba(255, 149, 0, 0.4);
+}
+
+.vuln-badge.medium {
+  background: rgba(255, 214, 10, 0.15);
+  color: #ffd60a;
+  border: 1px solid rgba(255, 214, 10, 0.3);
+}
+
+.vuln-badge.low {
+  background: rgba(48, 209, 88, 0.15);
+  color: #32d74b;
+  border: 1px solid rgba(48, 209, 88, 0.3);
+}
+
+.vuln-desc {
+  font-size: 12px;
+  color: #cbd5e1;
+  line-height: 1.4;
+}
+
+.vuln-remed {
+  font-size: 11px;
+  color: #94a3b8;
+  font-family: 'JetBrains Mono', monospace;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 6px 10px;
+  border-radius: 4px;
+}

@@ -901,7 +901,43 @@ async function renderAppsPage() {
       }
     };
 
-    runScriptBtn.onclick = () => {
+    // --- One-Click Pre-Built Snippets Loader ---
+    window.__loadSnippet = async (filename) => {
+      try {
+        const res = await api("/api/scripts");
+        if (res.status === "success" && res.scripts) {
+          const found = res.scripts.find(s => s.name === filename);
+          if (found) {
+            scriptSelect.value = filename;
+            scriptContentArea.value = found.content;
+            toast("Loaded hook snippet: " + filename);
+          } else {
+            toast("Hook snippet not found: " + filename);
+          }
+        }
+      } catch (e) {
+        toast("Failed to load snippet: " + e.message);
+      }
+    };
+
+    // --- Frida Inject Modal Setup ---
+    const fridaInjectModal = document.getElementById("fridaInjectModal");
+    const closeFridaInjectModalBtn = document.getElementById("closeFridaInjectModalBtn");
+    const fridaModalPkg = document.getElementById("fridaModalPkg");
+    const fridaModalDev = document.getElementById("fridaModalDev");
+    const fridaModalCmdInput = document.getElementById("fridaModalCmdInput");
+    const copyFridaCmdBtn = document.getElementById("copyFridaCmdBtn");
+    const downloadFridaBatBtn = document.getElementById("downloadFridaBatBtn");
+    const injectFridaWebBtn = document.getElementById("injectFridaWebBtn");
+
+    if (closeFridaInjectModalBtn && fridaInjectModal) {
+      closeFridaInjectModalBtn.onclick = () => fridaInjectModal.classList.remove("open");
+      fridaInjectModal.addEventListener("click", (e) => {
+        if (e.target === fridaInjectModal) fridaInjectModal.classList.remove("open");
+      });
+    }
+
+    runScriptBtn.onclick = async () => {
       const package_name = scriptPackageName.value.trim();
       const content = scriptContentArea.value;
       const device_id = select.value;
@@ -909,16 +945,61 @@ async function renderAppsPage() {
         toast("Please select a target device, enter app package, and provide hook code");
         return;
       }
-      if (fridaOutputConsole) {
-        const ts = new Date().toLocaleTimeString();
-        fridaOutputConsole.textContent += `\n[${ts}] [SYSTEM] Injected hook into ${package_name}...\n`;
+
+      const allDevices = await getDevices();
+      const currentDev = allDevices.find(d => d.id === device_id);
+      let targetFlag = "-U";
+      let devLabel = select.options[select.selectedIndex]?.textContent || "Target Device";
+      if (currentDev && currentDev.ip) {
+        const isUsb = !currentDev.ip.includes(".") && !currentDev.ip.includes(":");
+        targetFlag = isUsb ? `-D ${currentDev.ip}` : `-H ${currentDev.ip}:27042`;
+        devLabel = `${currentDev.name} (${currentDev.ip})`;
       }
-      socket.emit("run_frida_script", {
-        device_id,
-        package_name,
-        script_content: content
-      });
-      toast("Hook injected — streaming output");
+
+      const activeScriptName = scriptSelect.value || "hook_script.js";
+      const fullCmd = `frida ${targetFlag} -f ${package_name} -l "${activeScriptName}" --no-pause`;
+
+      if (fridaModalPkg) fridaModalPkg.textContent = package_name;
+      if (fridaModalDev) fridaModalDev.textContent = devLabel;
+      if (fridaModalCmdInput) fridaModalCmdInput.value = fullCmd;
+
+      if (copyFridaCmdBtn) {
+        copyFridaCmdBtn.onclick = () => window.__copyText(fridaModalCmdInput.value);
+      }
+
+      if (downloadFridaBatBtn) {
+        downloadFridaBatBtn.onclick = () => {
+          const batContent = `@echo off\ntitle RootRaven - Frida Injection (${package_name})\ncolor 0b\necho ========================================================\necho   RootRaven - Frida Dynamic Hooking Runner\necho   Target: ${package_name}\necho ========================================================\necho.\necho Executing: ${fridaModalCmdInput.value}\necho.\n${fridaModalCmdInput.value}\necho.\necho [Session Ended] Press any key to close this terminal...\npause >nul\n`;
+          const blob = new Blob([batContent], { type: "text/plain" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `run_frida_${package_name}.bat`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          toast("Downloaded run_frida.bat — double-click to launch");
+        };
+      }
+
+      if (injectFridaWebBtn) {
+        injectFridaWebBtn.onclick = () => {
+          if (fridaInjectModal) fridaInjectModal.classList.remove("open");
+          if (fridaOutputConsole) {
+            const ts = new Date().toLocaleTimeString();
+            fridaOutputConsole.textContent += `\n[${ts}] [SYSTEM] Injected hook into ${package_name}...\n`;
+          }
+          socket.emit("run_frida_script", {
+            device_id,
+            package_name,
+            script_content: content
+          });
+          toast("Hook injected — streaming output in Web Console");
+        };
+      }
+
+      if (fridaInjectModal) fridaInjectModal.classList.add("open");
     };
 
     stopScriptBtn.onclick = () => {
@@ -937,6 +1018,176 @@ async function renderAppsPage() {
     };
 
     loadScripts();
+  }
+
+  // --- Automated Static Vulnerability Scanner Binding ---
+  const scannerPackageName = document.getElementById("scannerPackageName");
+  const runScannerBtn = document.getElementById("runScannerBtn");
+  const scannerResultsWrap = document.getElementById("scannerResultsWrap");
+  const scannerSummaryBadges = document.getElementById("scannerSummaryBadges");
+  const scannerFindingsList = document.getElementById("scannerFindingsList");
+
+  if (scannerPackageName && runScannerBtn && scannerResultsWrap && scannerSummaryBadges && scannerFindingsList) {
+    runScannerBtn.onclick = async () => {
+      const device_id = select.value;
+      const package_name = scannerPackageName.value.trim();
+      if (!device_id || !package_name) {
+        toast("Please select a target device and specify a package name");
+        return;
+      }
+
+      runScannerBtn.disabled = true;
+      runScannerBtn.textContent = "Scanning...";
+      toast("Running static manifest security analysis...");
+
+      try {
+        const res = await api("/api/scan/manifest", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ package_name, device_id })
+        });
+
+        if (res.status === "success") {
+          const summary = res.summary || {};
+          scannerSummaryBadges.innerHTML = `
+            <span class="vuln-badge critical">${summary.critical || 0} Critical</span>
+            <span class="vuln-badge high">${summary.high || 0} High</span>
+            <span class="vuln-badge medium">${summary.medium || 0} Medium</span>
+            <span class="vuln-badge low">${summary.low || 0} Low</span>
+          `;
+
+          const vulns = res.vulnerabilities || [];
+          if (!vulns.length) {
+            scannerFindingsList.innerHTML = `<div style="color:#3ddc84; font-size:13px;">No critical manifest vulnerabilities detected.</div>`;
+          } else {
+            scannerFindingsList.innerHTML = vulns.map(v => `
+              <div class="vuln-card ${v.severity.toLowerCase()}">
+                <div class="vuln-card-header">
+                  <span class="vuln-title">${v.title}</span>
+                  <span class="vuln-badge ${v.severity.toLowerCase()}">${v.severity}</span>
+                </div>
+                <div class="vuln-desc">${v.description}</div>
+                <div class="vuln-remed"><b>Remediation:</b> ${v.remediation}</div>
+              </div>
+            `).join("");
+          }
+
+          scannerResultsWrap.style.display = "block";
+          toast(`Scan completed: ${vulns.length} security findings discovered`);
+        } else {
+          toast(res.message || "Static scan failed");
+        }
+      } catch (err) {
+        toast("Error during scan: " + err.message);
+      } finally {
+        runScannerBtn.disabled = false;
+        runScannerBtn.textContent = "Scan App Security";
+      }
+    };
+  }
+
+  // --- Deep Link & Intent Fuzzer Binding ---
+  const fuzzerPackageName = document.getElementById("fuzzerPackageName");
+  const discoverDeeplinksBtn = document.getElementById("discoverDeeplinksBtn");
+  const discoveredLinksSelect = document.getElementById("discoveredLinksSelect");
+  const fuzzerPayloadPreset = document.getElementById("fuzzerPayloadPreset");
+  const fuzzerCustomUri = document.getElementById("fuzzerCustomUri");
+  const fuzzerIntentAction = document.getElementById("fuzzerIntentAction");
+  const fuzzerExtraKey = document.getElementById("fuzzerExtraKey");
+  const fuzzerExtraVal = document.getElementById("fuzzerExtraVal");
+  const launchIntentFuzzBtn = document.getElementById("launchIntentFuzzBtn");
+  const fuzzerStatusBadge = document.getElementById("fuzzerStatusBadge");
+  const fuzzerOutputConsole = document.getElementById("fuzzerOutputConsole");
+
+  if (
+    fuzzerPackageName && discoverDeeplinksBtn && discoveredLinksSelect &&
+    fuzzerPayloadPreset && fuzzerCustomUri && launchIntentFuzzBtn && fuzzerOutputConsole
+  ) {
+    discoverDeeplinksBtn.onclick = async () => {
+      const device_id = select.value;
+      const package_name = fuzzerPackageName.value.trim();
+      if (!device_id || !package_name) {
+        toast("Please select a target device and package name");
+        return;
+      }
+      toast("Extracting registered deep links from manifest...");
+      try {
+        const res = await api("/api/fuzzer/deeplinks", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ package_name, device_id })
+        });
+        if (res.status === "success") {
+          const links = res.deeplinks || [];
+          discoveredLinksSelect.innerHTML = links.length
+            ? links.map(l => `<option value="${l}">${l}</option>`).join("")
+            : "<option value=''>No custom schemes discovered</option>";
+          if (links.length) {
+            fuzzerCustomUri.value = links[0];
+          }
+          toast(`Discovered ${links.length} deep link patterns`);
+        } else {
+          toast(res.message || "Failed to discover deep links");
+        }
+      } catch (err) {
+        toast("Error extracting deep links: " + err.message);
+      }
+    };
+
+    discoveredLinksSelect.onchange = () => {
+      if (discoveredLinksSelect.value) {
+        fuzzerCustomUri.value = discoveredLinksSelect.value;
+      }
+    };
+
+    fuzzerPayloadPreset.onchange = () => {
+      const preset = fuzzerPayloadPreset.value;
+      if (!preset) return;
+      let baseUri = fuzzerCustomUri.value || "myapp://open";
+      if (baseUri.includes("?")) {
+        fuzzerCustomUri.value = `${baseUri}&param=${encodeURIComponent(preset)}`;
+      } else {
+        fuzzerCustomUri.value = `${baseUri}?target=${encodeURIComponent(preset)}`;
+      }
+      toast("Appended fuzzing payload to URI");
+    };
+
+    launchIntentFuzzBtn.onclick = async () => {
+      const device_id = select.value;
+      const uri = fuzzerCustomUri.value.trim();
+      const action = fuzzerIntentAction.value.trim();
+      const extra_key = fuzzerExtraKey.value.trim();
+      const extra_val = fuzzerExtraVal.value.trim();
+      const package_name = fuzzerPackageName.value.trim();
+
+      if (!device_id) {
+        toast("Please select a target device");
+        return;
+      }
+
+      toast("Dispatching intent payload...");
+      if (fuzzerStatusBadge) fuzzerStatusBadge.textContent = "Dispatching...";
+
+      try {
+        const res = await api("/api/fuzzer/launch-intent", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri, action, extra_key, extra_val, package_name, device_id })
+        });
+
+        if (fuzzerStatusBadge) {
+          fuzzerStatusBadge.textContent = res.result_type || "Completed";
+          fuzzerStatusBadge.style.color = res.result_type === "CRASH_OR_ERROR" ? "var(--red)" : "#3ddc84";
+        }
+
+        const ts = new Date().toLocaleTimeString();
+        fuzzerOutputConsole.textContent += `\n[${ts}] Command: ${res.command || ""}\n${res.output || "(no output)"}\n`;
+        fuzzerOutputConsole.scrollTop = fuzzerOutputConsole.scrollHeight;
+        toast("Intent dispatched — check device & response log");
+      } catch (err) {
+        toast("Error launching intent: " + err.message);
+      }
+    };
   }
 
   // --- Storage Explorer (SQLite & XML) Binding ---
@@ -1266,8 +1517,12 @@ function renderApps(apps) {
   window.__selectPackage = (pkg) => {
     const scriptPkg = document.getElementById("scriptPackageName");
     const storagePkg = document.getElementById("storagePackageName");
+    const scannerPkg = document.getElementById("scannerPackageName");
+    const fuzzerPkg = document.getElementById("fuzzerPackageName");
     if (scriptPkg) scriptPkg.value = pkg;
     if (storagePkg) storagePkg.value = pkg;
+    if (scannerPkg) scannerPkg.value = pkg;
+    if (fuzzerPkg) fuzzerPkg.value = pkg;
     toast("Target app package selected: " + pkg);
   };
 

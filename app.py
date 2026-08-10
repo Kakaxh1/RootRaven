@@ -16,6 +16,8 @@ from werkzeug.utils import secure_filename
 from utils.adb_helper import ADBHelper
 from utils.device_manager import DeviceManager
 from utils.frida_manager import FridaManager
+from utils.scanner import StaticScanner
+from utils.fuzzer import IntentFuzzer
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "mobile-security-testing-tool"
@@ -39,6 +41,8 @@ app.logger.addHandler(sock_handler)
 device_manager = DeviceManager()
 frida_manager = FridaManager()
 adb_helper = ADBHelper()
+static_scanner = StaticScanner()
+intent_fuzzer = IntentFuzzer()
 SSH_SESSIONS = {}
 ADB_SESSIONS = {}
 RUNNING_FRIDA_PROCESSES = {}
@@ -863,6 +867,48 @@ def handle_get_apps(data):
         return
     apps = frida_manager.get_app_list(device)
     emit("app_list", {"status": "success", "apps": apps})
+
+
+@app.route("/api/scan/manifest", methods=["POST"])
+def api_scan_manifest():
+    payload = request.json or {}
+    package_name = (payload.get("package_name") or "").strip()
+    device_id = payload.get("device_id")
+    if not package_name or not device_id:
+        return jsonify({"status": "error", "message": "Package name and device ID are required"}), 400
+    device = device_manager.get_device(device_id)
+    if not device:
+        return jsonify({"status": "error", "message": "Device not found"}), 404
+    res = static_scanner.scan_android_package(package_name, device)
+    return jsonify(res)
+
+
+@app.route("/api/fuzzer/deeplinks", methods=["POST"])
+def api_fuzzer_deeplinks():
+    payload = request.json or {}
+    package_name = (payload.get("package_name") or "").strip()
+    device_id = payload.get("device_id")
+    if not package_name or not device_id:
+        return jsonify({"status": "error", "message": "Package name and device ID are required"}), 400
+    device = device_manager.get_device(device_id)
+    if not device:
+        return jsonify({"status": "error", "message": "Device not found"}), 404
+    res = intent_fuzzer.extract_deeplinks(package_name, device)
+    return jsonify(res)
+
+
+@app.route("/api/fuzzer/launch-intent", methods=["POST"])
+def api_fuzzer_launch_intent():
+    payload = request.json or {}
+    uri = (payload.get("uri") or "").strip()
+    action = (payload.get("action") or "").strip()
+    extra_key = (payload.get("extra_key") or "").strip()
+    extra_val = (payload.get("extra_val") or "").strip()
+    package_name = (payload.get("package_name") or "").strip()
+    device_id = payload.get("device_id")
+    device = device_manager.get_device(device_id) if device_id else None
+    res = intent_fuzzer.launch_intent(uri, action, extra_key, extra_val, package_name, device)
+    return jsonify(res)
 
 
 @app.route("/api/objection/launch", methods=["POST"])
