@@ -67,6 +67,74 @@
             <button id="appsNextBtn">Next Intel ></button>
           </div>
         </section>
+
+        <section class="card">
+          <h2>[SCRIPTS] Frida Script Hub</h2>
+          <p>Inject custom javascript hooks into target application processes.</p>
+          <div class="row">
+            <select id="scriptSelect" style="max-width:250px;"></select>
+            <input id="newScriptName" placeholder="custom_hook.js" style="max-width:180px;" />
+            <button id="saveScriptBtn">Save Script</button>
+            <button id="deleteScriptBtn" style="border-color:var(--red); color:var(--red);">Delete</button>
+          </div>
+          <div style="margin-top:12px; display:flex; flex-direction:column; gap:8px;">
+            <label style="font-size:13px; color:var(--text-dim);">Selected Hook Script Content:</label>
+            <textarea id="scriptContentArea" style="width:100%; height:180px; font-family:'JetBrains Mono', monospace; font-size:12px; background:rgba(0,0,0,0.5); color:#00f0ff; border:1px solid var(--glass-border); border-radius:4px; padding:10px; box-sizing:border-box; resize:vertical;"></textarea>
+          </div>
+          <div class="row" style="margin-top:12px;">
+            <input id="scriptPackageName" placeholder="Target Package Name (e.g. com.reliance.businesseasy2)" style="flex:1;" />
+            <button id="runScriptBtn" style="background:var(--cyan); color:#000; font-weight:700;">Inject Script</button>
+            <button id="stopScriptBtn" style="border-color:var(--red); color:var(--red);">Stop Injection</button>
+          </div>
+          <div class="row" style="margin-top:16px; border-top:1px solid rgba(255,255,255,0.05); padding-top:16px; align-items:center; gap:8px;">
+            <input id="memorySearchPattern" placeholder="String Pattern to scan in process memory (e.g. API_KEY)" style="flex:1;" />
+            <button id="scanMemoryBtn" style="background:var(--cyan); color:#000; font-weight:700;">Scan Process Memory</button>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>[STORAGE] Storage Explorer (SQLite & XML)</h2>
+          <p>Inspect internal application databases and SharedPreferences configurations (Android only).</p>
+          <div class="row">
+            <input id="storagePackageName" placeholder="Target Package Name (e.g. com.reliance.businesseasy2)" style="flex:1;" />
+            <button id="scanStorageBtn">Scan App Storage</button>
+          </div>
+          <div class="row" style="margin-top:12px;">
+            <select id="storageFileSelect" style="flex:1;"></select>
+            <button id="readStorageFileBtn">Inspect Selected File</button>
+          </div>
+          
+          <div id="sqliteConsole" style="margin-top:16px; border-top:1px solid rgba(255,255,255,0.05); padding-top:16px; display:none;">
+            <div class="row">
+              <input id="sqlQueryText" placeholder="SELECT * FROM sqlite_master WHERE type='table'" style="flex:1;" />
+              <button id="runSqlBtn" style="border-color:var(--cyan); color:var(--cyan);">Run SQL Query</button>
+            </div>
+            <div id="sqlResultWrap" style="margin-top:12px; overflow-x:auto;"></div>
+          </div>
+
+          <div id="sharedPrefConsole" style="margin-top:16px; border-top:1px solid rgba(255,255,255,0.05); padding-top:16px; display:none;">
+            <pre id="prefXmlOutput" class="mono debug-console" style="max-height:250px; overflow-y:auto;"></pre>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>[DECOMPILER] Automated APK Decompiler (JADX)</h2>
+          <p>Decompile Android APK binaries and explore Java classes source code.</p>
+          <div class="row">
+            <input type="file" id="decompilerFileInput" accept=".apk" style="display:none;" />
+            <button id="uploadDecompilerApkBtn" style="border-color:var(--cyan); color:var(--cyan);">Upload & Decompile APK</button>
+            <span id="decompileStatusLabel" style="font-size:13px; color:var(--text-dim);">No active decompile session</span>
+          </div>
+          <div id="decompileWorkspace" style="margin-top:16px; border-top:1px solid rgba(255,255,255,0.05); padding-top:16px; display:none; gap:16px;">
+            <div id="decompileTreeColumn" style="width:250px; max-height:400px; overflow-y:auto; border:1px solid var(--glass-border); border-radius:4px; padding:10px; background:rgba(0,0,0,0.3); font-family:monospace; font-size:13px;">
+              <!-- Directory tree loaded here -->
+            </div>
+            <div id="decompileSourceColumn" style="flex:1;">
+              <div style="font-size:13px; color:var(--text-dim); margin-bottom:8px;" id="sourceFileTitle">Source View</div>
+              <pre id="decompiledSourceOutput" class="mono debug-console" style="height:400px; max-height:400px; overflow:auto;"></pre>
+            </div>
+          </div>
+        </section>
       </div>
     </main>
   </div>

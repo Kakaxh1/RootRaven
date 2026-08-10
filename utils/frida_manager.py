@@ -1,8 +1,14 @@
+import os
 import subprocess
 import sys
 
 
 class FridaManager:
+    def __init__(self):
+        base_dir = os.path.dirname(os.path.dirname(__file__))
+        self.scripts_dir = os.path.join(base_dir, "data", "scripts")
+        os.makedirs(self.scripts_dir, exist_ok=True)
+
     def _run(self, command, timeout=25):
         try:
             proc = subprocess.run(
@@ -54,3 +60,42 @@ class FridaManager:
     def bypass_ssl_pinning(self, device_type):
         value = "android sslpinning disable" if device_type == "android" else "ios sslpinning disable"
         return {"status": "success", "command": value}
+
+    def get_scripts(self):
+        try:
+            files = os.listdir(self.scripts_dir)
+            scripts = []
+            for file in files:
+                if file.endswith(".js"):
+                    filepath = os.path.join(self.scripts_dir, file)
+                    with open(filepath, "r", encoding="utf-8") as fp:
+                        content = fp.read()
+                    scripts.append({"name": file, "content": content})
+            return {"status": "success", "scripts": scripts}
+        except Exception as exc:
+            return {"status": "error", "message": str(exc), "scripts": []}
+
+    def save_script(self, name, content):
+        if not name.endswith(".js"):
+            name = name + ".js"
+        # Sanitize filename
+        name = os.path.basename(name)
+        try:
+            filepath = os.path.join(self.scripts_dir, name)
+            with open(filepath, "w", encoding="utf-8") as fp:
+                fp.write(content)
+            return {"status": "success", "message": f"Script {name} saved successfully"}
+        except Exception as exc:
+            return {"status": "error", "message": str(exc)}
+
+    def delete_script(self, name):
+        name = os.path.basename(name)
+        try:
+            filepath = os.path.join(self.scripts_dir, name)
+            if os.path.exists(filepath):
+                os.remove(filepath)
+                return {"status": "success", "message": f"Script {name} deleted"}
+            return {"status": "error", "message": "Script not found"}
+        except Exception as exc:
+            return {"status": "error", "message": str(exc)}
+

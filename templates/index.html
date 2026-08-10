@@ -44,61 +44,110 @@
         <h1>Command Center</h1>
       </header>
 
-      <div class="content">
-        <section class="card">
-          <h2>[TARGETS] Connected Targets</h2>
-          <div class="row segmented-control">
-            <input type="radio" name="osFilter" id="filterAll" value="all" checked>
-            <label for="filterAll">Globally</label>
-            <input type="radio" name="osFilter" id="filterAndroid" value="android">
-            <label for="filterAndroid">Android OS</label>
-            <input type="radio" name="osFilter" id="filterIos" value="ios">
-            <label for="filterIos">Apple iOS</label>
-          </div>
-          <div id="deviceCards" class="grid"></div>
-        </section>
+      <div class="content-wrapper">
+        <div class="left-main">
+          <section class="card">
+            <h2>[TARGETS] Connected Targets</h2>
+            <div class="row segmented-control">
+              <input type="radio" name="osFilter" id="filterAll" value="all" checked>
+              <label for="filterAll">Globally</label>
+              <input type="radio" name="osFilter" id="filterAndroid" value="android">
+              <label for="filterAndroid">Android OS</label>
+              <input type="radio" name="osFilter" id="filterIos" value="ios">
+              <label for="filterIos">Apple iOS</label>
+            </div>
+            <div id="deviceCards" class="grid"></div>
+          </section>
 
-        <section class="card">
-          <h2>[PROXY] Proxy Intercept Settings</h2>
-          <ul>
-            <li id="proxyWifi">Configure WiFi proxy to: loading...</li>
-            <li id="proxyBurp">Configure Burp Suite listener to: <span class="mono" style="color:var(--cyan)">0.0.0.0:8080</span></li>
-          </ul>
-        </section>
+          <section class="card">
+            <h2>[PROXY] Proxy Intercept Settings</h2>
+            <ul>
+              <li id="proxyWifi">Configure WiFi proxy to: loading...</li>
+              <li id="proxyBurp">Configure Burp Suite listener to: <span class="mono" style="color:var(--cyan)">0.0.0.0:8080</span></li>
+            </ul>
+            <div class="row" style="margin-top:12px; border-top:1px solid rgba(255,255,255,0.05); padding-top:12px; flex-direction:column; align-items:flex-start; gap:8px;">
+              <label style="font-size:13px; color:var(--text-dim);">Automated Burp CA Cert Installer (Android):</label>
+              <div class="row" style="width:100%;">
+                <select id="certDeviceSelect" style="max-width:200px;"></select>
+                <input type="file" id="certFileInput" accept=".der,.pem" style="display:none;" />
+                <button id="uploadCertBtn" style="border-color:var(--cyan); color:var(--cyan);">Select & Install CA Certificate</button>
+              </div>
+            </div>
+          </section>
 
-        <section class="card">
-          <h2>[SHELL] Secure Shell Access</h2>
-          <p>Establish persistent SSH connections to compromised or remote targets.</p>
-          <div class="row">
-            <select id="sshIp"></select>
-            <input id="sshPort" placeholder="port (8022)" value="8022" style="width:100px; min-width:80px;" />
-            <input id="sshId" placeholder="id / user" />
-            <input id="sshPass" placeholder="password" type="password" />
-          </div>
-          <div class="row">
-            <input id="sshCommand" placeholder="$ enter command (e.g. uname -a)" style="flex:1;" />
-            <button id="connectSshBtn">Connect</button>
-            <button id="runSshCmd" style="border-color:var(--cyan); color:var(--cyan);">Execute</button>
-            <button id="disconnectSshBtn">Terminate</button>
-            <button id="clearSshOut">Wipe</button>
-          </div>
-          <pre id="sshTerminalOut" class="mono debug-console"></pre>
-        </section>
+          <section class="card">
+            <h2>[SHELL] Secure Shell Access</h2>
+            <p>Establish persistent SSH connections to compromised or remote targets.</p>
+            <div class="row">
+              <select id="sshIp"></select>
+              <input id="sshPort" placeholder="port (8022)" value="8022" style="width:100px; min-width:80px;" />
+              <input id="sshId" placeholder="id / user" />
+              <input id="sshPass" placeholder="password" type="password" />
+            </div>
+            <div class="row">
+              <input id="sshCommand" placeholder="$ enter command (e.g. uname -a)" style="flex:1;" />
+              <button id="connectSshBtn">Connect</button>
+              <button id="runSshCmd" style="border-color:var(--cyan); color:var(--cyan);">Execute</button>
+              <button id="disconnectSshBtn">Terminate</button>
+              <button id="clearSshOut">Wipe</button>
+            </div>
+            <pre id="sshTerminalOut" class="mono debug-console"></pre>
+          </section>
+
+          <section class="card">
+            <h2>[ADB SHELL] Network ADB Shell Access</h2>
+            <p>Establish interactive network shell console sessions direct to Android devices over ADB.</p>
+            <div class="row">
+              <select id="adbShellIp" style="flex:1;"></select>
+            </div>
+            <div class="row">
+              <input id="adbShellCommand" placeholder="$ adb shell command (e.g. ls -la /data/local/tmp)" style="flex:1;" />
+              <button id="connectAdbShellBtn">Connect</button>
+              <button id="runAdbShellCmd" style="border-color:var(--cyan); color:var(--cyan);">Execute</button>
+              <button id="disconnectAdbShellBtn">Terminate</button>
+              <button id="clearAdbShellOut">Wipe</button>
+            </div>
+            <pre id="adbShellTerminalOut" class="mono debug-console"></pre>
+          </section>
+        </div>
+
+        <div class="right-panel">
+          <section class="card" style="display:flex; flex-direction:column; flex:1;">
+            <div class="tab-header" style="display:flex; gap:16px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:12px; margin-bottom:16px;">
+              <button id="tabLogcat" class="tab-btn active" style="background:none; border:none; padding:4px 8px; color:var(--cyan); border-bottom:2px solid var(--cyan); border-radius:0;">Device Logcat</button>
+              <button id="tabServer" class="tab-btn" style="background:none; border:none; padding:4px 8px; color:var(--text-dim); border-radius:0;">Server Logs</button>
+            </div>
+
+            <!-- Device Logcat Container -->
+            <div id="contentLogcat">
+              <div class="row">
+                <select id="logcatDeviceSelect" style="flex:1;"></select>
+              </div>
+              <div class="row" style="margin-top:-6px;">
+                <input id="logcatFilterText" placeholder="Filter logs..." style="flex:1; min-width:120px;" />
+              </div>
+              <div class="row" style="margin-top:-6px;">
+                <button id="startLogcatBtn" style="flex:1;">Start</button>
+                <button id="stopLogcatBtn" style="border-color:var(--red); color:var(--red); flex:1;">Stop</button>
+                <button id="clearLogcatBtn" style="flex:1;">Clear</button>
+              </div>
+              <pre id="logcatOutput" class="mono debug-console" style="max-height:450px; overflow-y:auto; margin-top:12px; font-size:11px;"></pre>
+            </div>
+
+            <!-- Server Logs Container -->
+            <div id="contentServer" style="display:none;">
+              <div class="row">
+                <button id="clearServerLogsBtn" style="flex:1;">Clear Server Logs</button>
+              </div>
+              <pre id="debugConsole" class="mono debug-console" style="max-height:450px; overflow-y:auto; margin-top:12px; font-size:11px;"></pre>
+            </div>
+          </section>
+        </div>
       </div>
     </main>
   </div>
 
   <div id="toast"></div>
-
-  <!-- Global Live Debug Console Overlay -->
-  <div id="globalDebugOverlay" class="debug-overlay">
-    <div class="debug-header">
-      <span>SERVER_LOGS::LIVE</span>
-      <button id="toggleDebugBtn" class="sm-btn">x</button>
-    </div>
-    <pre id="debugConsole" class="mono debug-console-global"></pre>
-  </div>
-  <button id="openDebugBtn" class="floating-debug-btn">Live Logs</button>
 
   <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>

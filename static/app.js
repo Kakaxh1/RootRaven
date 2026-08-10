@@ -5,6 +5,15 @@ let currentApps = [];
 let appsPage = 1;
 const APPS_PAGE_SIZE = 5;
 
+window.onerror = function (message, source, lineno, colno, error) {
+  const errText = `JS_ERROR: ${message} at line ${lineno}:${colno}`;
+  console.error(errText, error);
+  toast(errText);
+  debugLog(errText);
+  const tabServer = document.getElementById("tabServer");
+  if (tabServer) tabServer.onclick();
+};
+
 function debugLog(line) {
   const ts = new Date().toLocaleTimeString();
   debugLines.push(`[${ts}] ${line}`);
@@ -146,6 +155,15 @@ function attachSocketListeners() {
   socket.on("app_list", (payload) => {
     if (getPage() !== "apps") return;
     renderApps(payload.apps || []);
+  });
+  socket.on("frida_script_status", (d) => toast(d.message || "Frida script status update"));
+  socket.on("logcat_status", (d) => toast(d.message || "Logcat status update"));
+  socket.on("logcat_line", (d) => {
+    const box = document.getElementById("logcatOutput");
+    if (box) {
+      box.textContent += d.line + "\n";
+      box.scrollTop = box.scrollHeight;
+    }
   });
 }
 
@@ -306,6 +324,189 @@ async function renderDashboard() {
       sshOut.textContent = "";
     };
   }
+
+  // --- CA Certificate Installer binding ---
+  const certDeviceSelect = document.getElementById("certDeviceSelect");
+  const certFileInput = document.getElementById("certFileInput");
+  const uploadCertBtn = document.getElementById("uploadCertBtn");
+  
+  if (certDeviceSelect && certFileInput && uploadCertBtn) {
+    const androidDevices = devices.filter(d => d.type === "android");
+    certDeviceSelect.innerHTML = androidDevices.length
+      ? androidDevices.map(d => `<option value="${d.id}">${d.name} (${d.ip})</option>`).join("")
+      : "<option value=''>No Android Devices</option>";
+      
+    uploadCertBtn.onclick = () => {
+      if (!certDeviceSelect.value) {
+        toast("Please register and select an Android device first");
+        return;
+      }
+      certFileInput.click();
+    };
+    
+    certFileInput.onchange = async () => {
+      if (!certFileInput.files.length) return;
+      const fd = new FormData();
+      fd.append("device_id", certDeviceSelect.value);
+      fd.append("file", certFileInput.files[0]);
+      toast("Installing CA Certificate...");
+      try {
+        const res = await fetch("/api/cert/install", { method: "POST", body: fd }).then(r => r.json());
+        toast(res.message || "CA Certificate Installation completed");
+        debugLog(`CA Certificate: ${res.message || "completed"}`);
+      } catch (err) {
+        toast("Error: " + err.message);
+      }
+      certFileInput.value = "";
+    };
+  }
+
+
+
+  // --- Logcat Streamer binding ---
+  const logcatDeviceSelect = document.getElementById("logcatDeviceSelect");
+  const logcatFilterText = document.getElementById("logcatFilterText");
+  const startLogcatBtn = document.getElementById("startLogcatBtn");
+  const stopLogcatBtn = document.getElementById("stopLogcatBtn");
+  const clearLogcatBtn = document.getElementById("clearLogcatBtn");
+  const logcatOutput = document.getElementById("logcatOutput");
+
+  if (logcatDeviceSelect && logcatFilterText && startLogcatBtn && stopLogcatBtn && clearLogcatBtn && logcatOutput) {
+    const androidDevices = devices.filter(d => d.type === "android");
+    logcatDeviceSelect.innerHTML = androidDevices.length
+      ? androidDevices.map(d => `<option value="${d.id}">${d.name} (${d.ip})</option>`).join("")
+      : "<option value=''>No Android Devices</option>";
+
+    startLogcatBtn.onclick = () => {
+      if (!logcatDeviceSelect.value) {
+        toast("Select an Android device first");
+        return;
+      }
+      logcatOutput.textContent += "\n[SYSTEM] Starting logcat stream...\n";
+      socket.emit("start_logcat", {
+        device_id: logcatDeviceSelect.value,
+        filter_text: logcatFilterText.value
+      });
+      toast("Logcat Started");
+    };
+
+    stopLogcatBtn.onclick = () => {
+      if (!logcatDeviceSelect.value) return;
+      socket.emit("stop_logcat", { device_id: logcatDeviceSelect.value });
+      logcatOutput.textContent += "\n[SYSTEM] Logcat stream stopped.\n";
+      toast("Logcat Stopped");
+    };
+
+    clearLogcatBtn.onclick = () => {
+      logcatOutput.textContent = "";
+    };
+  }
+
+  // --- Network ADB Shell Console binding ---
+  const adbShellIp = document.getElementById("adbShellIp");
+  const adbShellCommand = document.getElementById("adbShellCommand");
+  const connectAdbShellBtn = document.getElementById("connectAdbShellBtn");
+  const runAdbShellCmd = document.getElementById("runAdbShellCmd");
+  const disconnectAdbShellBtn = document.getElementById("disconnectAdbShellBtn");
+  const clearAdbShellOut = document.getElementById("clearAdbShellOut");
+  const adbShellOut = document.getElementById("adbShellTerminalOut");
+
+  if (
+    adbShellIp && adbShellCommand && connectAdbShellBtn &&
+    runAdbShellCmd && disconnectAdbShellBtn && clearAdbShellOut && adbShellOut
+  ) {
+    const androidDevices = devices.filter(d => d.type === "android");
+    adbShellIp.innerHTML = androidDevices.length
+      ? androidDevices.map(d => `<option value="${d.id}">${d.name} (${d.ip})</option>`).join("")
+      : "<option value=''>No Android Devices</option>";
+
+    let adbSessionId = null;
+
+    const writeAdb = (text) => {
+      const ts = new Date().toLocaleTimeString();
+      adbShellOut.textContent += `[${ts}] ${text}\n`;
+      adbShellOut.scrollTop = adbShellOut.scrollHeight;
+    };
+
+    connectAdbShellBtn.onclick = async () => {
+      const device_id = adbShellIp.value;
+      if (!device_id) {
+        toast("Please select an Android device");
+        return;
+      }
+      toast("Connecting network ADB shell...");
+      try {
+        const out = await api("/api/adb/connect", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ device_id })
+        });
+        if (out.status === "success") {
+          adbSessionId = out.session_id;
+          writeAdb(out.output || "Connected to ADB shell");
+          toast("ADB shell connected");
+        } else {
+          writeAdb(`ERROR: ${out.message}`);
+          toast("Failed to connect");
+        }
+      } catch (err) {
+        writeAdb(`ERROR: ${err.message}`);
+      }
+    };
+
+    runAdbShellCmd.onclick = async () => {
+      const command = adbShellCommand.value.trim();
+      if (!adbSessionId) {
+        toast("Connect ADB Shell first");
+        return;
+      }
+      if (!command) {
+        toast("Enter command");
+        return;
+      }
+      writeAdb(`$ ${command}`);
+      try {
+        const out = await api("/api/adb/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ session_id: adbSessionId, command })
+        });
+        if (out.status === "success") {
+          writeAdb(out.output || "(no output)");
+        } else {
+          writeAdb(`ERROR: ${out.message}`);
+        }
+      } catch (err) {
+        writeAdb(`ERROR: ${err.message}`);
+      }
+    };
+
+    disconnectAdbShellBtn.onclick = async () => {
+      if (!adbSessionId) {
+        toast("No active ADB session");
+        return;
+      }
+      try {
+        const out = await api("/api/adb/disconnect", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ session_id: adbSessionId })
+        });
+        if (out.status === "success") {
+          writeAdb("Disconnected.");
+        } else {
+          writeAdb(`ERROR: ${out.message}`);
+        }
+      } catch (err) {
+        writeAdb(`ERROR: ${err.message}`);
+      }
+      adbSessionId = null;
+    };
+
+    clearAdbShellOut.onclick = () => {
+      adbShellOut.textContent = "";
+    };
+  }
 }
 
 async function renderDevicesPage() {
@@ -451,6 +652,390 @@ async function renderAppsPage() {
       renderApps(currentApps);
     };
   }
+
+  // --- Frida Script Hub Binding ---
+  const scriptSelect = document.getElementById("scriptSelect");
+  const newScriptName = document.getElementById("newScriptName");
+  const saveScriptBtn = document.getElementById("saveScriptBtn");
+  const deleteScriptBtn = document.getElementById("deleteScriptBtn");
+  const scriptContentArea = document.getElementById("scriptContentArea");
+  const scriptPackageName = document.getElementById("scriptPackageName");
+  const runScriptBtn = document.getElementById("runScriptBtn");
+  const stopScriptBtn = document.getElementById("stopScriptBtn");
+
+  if (
+    scriptSelect && newScriptName && saveScriptBtn && deleteScriptBtn &&
+    scriptContentArea && scriptPackageName && runScriptBtn && stopScriptBtn
+  ) {
+    let scriptList = [];
+    
+    const loadScripts = async () => {
+      try {
+        const res = await api("/api/scripts");
+        if (res.status === "success") {
+          scriptList = res.scripts || [];
+          scriptSelect.innerHTML = scriptList.length
+            ? scriptList.map(s => `<option value="${s.name}">${s.name}</option>`).join("")
+            : "<option value=''>No scripts saved</option>";
+          
+          if (scriptList.length) {
+            scriptSelect.dispatchEvent(new Event('change'));
+          } else {
+            scriptContentArea.value = "";
+          }
+        }
+      } catch (err) {
+        toast("Failed to load scripts: " + err.message);
+      }
+    };
+
+    scriptSelect.onchange = () => {
+      const selected = scriptList.find(s => s.name === scriptSelect.value);
+      if (selected) {
+        scriptContentArea.value = selected.content || "";
+        newScriptName.value = selected.name;
+      }
+    };
+
+    saveScriptBtn.onclick = async () => {
+      const name = newScriptName.value.trim();
+      const content = scriptContentArea.value;
+      if (!name || !content) {
+        toast("Please provide both name and content");
+        return;
+      }
+      try {
+        const res = await api("/api/scripts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, content })
+        });
+        toast(res.message || "Script saved");
+        await loadScripts();
+        scriptSelect.value = name.endsWith(".js") ? name : name + ".js";
+        scriptSelect.dispatchEvent(new Event('change'));
+      } catch (err) {
+        toast("Failed to save: " + err.message);
+      }
+    };
+
+    deleteScriptBtn.onclick = async () => {
+      if (!scriptSelect.value) return;
+      if (!confirm("Are you sure you want to delete this script?")) return;
+      try {
+        const res = await api(`/api/scripts/${scriptSelect.value}`, { method: "DELETE" });
+        toast(res.message || "Script deleted");
+        newScriptName.value = "";
+        await loadScripts();
+      } catch (err) {
+        toast("Failed to delete: " + err.message);
+      }
+    };
+
+    runScriptBtn.onclick = () => {
+      const package_name = scriptPackageName.value.trim();
+      const content = scriptContentArea.value;
+      const device_id = select.value;
+      if (!package_name || !content || !device_id) {
+        toast("Please verify device connection, package name, and script content");
+        return;
+      }
+      socket.emit("run_frida_script", {
+        device_id,
+        package_name,
+        script_content: content
+      });
+      toast("Injected script trigger sent");
+    };
+
+    stopScriptBtn.onclick = () => {
+      const package_name = scriptPackageName.value.trim();
+      const device_id = select.value;
+      if (!package_name || !device_id) {
+        toast("Device connection and package name are required");
+        return;
+      }
+      socket.emit("stop_frida_script", { device_id, package_name });
+      toast("Stop request sent");
+    };
+
+    loadScripts();
+  }
+
+  // --- Storage Explorer (SQLite & XML) Binding ---
+  const storagePackageName = document.getElementById("storagePackageName");
+  const scanStorageBtn = document.getElementById("scanStorageBtn");
+  const storageFileSelect = document.getElementById("storageFileSelect");
+  const readStorageFileBtn = document.getElementById("readStorageFileBtn");
+  const sqliteConsole = document.getElementById("sqliteConsole");
+  const sqlQueryText = document.getElementById("sqlQueryText");
+  const runSqlBtn = document.getElementById("runSqlBtn");
+  const sqlResultWrap = document.getElementById("sqlResultWrap");
+  const sharedPrefConsole = document.getElementById("sharedPrefConsole");
+  const prefXmlOutput = document.getElementById("prefXmlOutput");
+
+  if (
+    storagePackageName && scanStorageBtn && storageFileSelect && readStorageFileBtn &&
+    sqliteConsole && sqlQueryText && runSqlBtn && sqlResultWrap && sharedPrefConsole && prefXmlOutput
+  ) {
+    scanStorageBtn.onclick = async () => {
+      const device_id = select.value;
+      const package = storagePackageName.value.trim();
+      if (!device_id || !package) {
+        toast("Please select a device and enter a package name");
+        return;
+      }
+      toast("Scanning application storage...");
+      try {
+        const res = await api(`/api/device/db/list?device_id=${device_id}&package=${package}`);
+        if (res.status === "success") {
+          const files = res.files || [];
+          storageFileSelect.innerHTML = files.length
+            ? files.map(f => `<option value="${f}">${f}</option>`).join("")
+            : "<option value=''>No database or preference files discovered</option>";
+          toast(`Discovered ${files.length} storage files`);
+        } else {
+          toast(res.message || "Failed to scan storage");
+          storageFileSelect.innerHTML = "<option value=''>Scan failed</option>";
+        }
+      } catch (err) {
+        toast("Error scanning: " + err.message);
+      }
+    };
+
+    readStorageFileBtn.onclick = async () => {
+      const device_id = select.value;
+      const package = storagePackageName.value.trim();
+      const filePath = storageFileSelect.value;
+      if (!device_id || !package || !filePath) {
+        toast("Verify scan results and selections");
+        return;
+      }
+
+      sqliteConsole.style.display = "none";
+      sharedPrefConsole.style.display = "none";
+      sqlResultWrap.innerHTML = "";
+      prefXmlOutput.textContent = "";
+
+      if (filePath.endsWith(".db") || filePath.includes("sqlite")) {
+        sqliteConsole.style.display = "block";
+        sqlQueryText.value = "SELECT name FROM sqlite_master WHERE type='table'";
+        
+        runSqlBtn.onclick = async () => {
+          const sql = sqlQueryText.value.trim();
+          if (!sql) return;
+          toast("Executing SQL Query...");
+          try {
+            const res = await fetch("/api/device/db/query", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ device_id, package, db_path: filePath, sql })
+            }).then(r => r.json());
+            
+            if (res.status === "success") {
+              const cols = res.columns || [];
+              const rows = res.rows || [];
+              if (!rows.length) {
+                sqlResultWrap.innerHTML = "<p style='color:var(--text-dim)'>Query returned 0 rows successfully.</p>";
+                return;
+              }
+              const ths = cols.map(c => `<th>${c}</th>`).join("");
+              const trs = rows.map(r => `<tr>${r.map(v => `<td>${v !== null ? v : 'NULL'}</td>`).join("")}</tr>`).join("");
+              sqlResultWrap.innerHTML = `<table><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>`;
+              toast("Query complete");
+            } else {
+              sqlResultWrap.innerHTML = `<p style="color:var(--red)">ERROR: ${res.message}</p>`;
+              toast("Query failed");
+            }
+          } catch (err) {
+            toast("Error executing query: " + err.message);
+          }
+        };
+        runSqlBtn.onclick();
+      } else if (filePath.endsWith(".xml")) {
+        sharedPrefConsole.style.display = "block";
+        toast("Loading configuration settings...");
+        try {
+          const res = await api(`/api/device/pref/read?device_id=${device_id}&package=${package}&pref_path=${filePath}`);
+          if (res.status === "success") {
+            prefXmlOutput.textContent = res.content || "(empty)";
+            toast("Loaded preferences file");
+          } else {
+            prefXmlOutput.textContent = "ERROR: " + res.message;
+            toast("Failed to load file");
+          }
+        } catch (err) {
+          toast("Error loading preferences: " + err.message);
+        }
+      }
+    };
+  }
+
+  // --- Frida Memory Scanner Binding ---
+  const memorySearchPattern = document.getElementById("memorySearchPattern");
+  const scanMemoryBtn = document.getElementById("scanMemoryBtn");
+  if (memorySearchPattern && scanMemoryBtn) {
+    scanMemoryBtn.onclick = async () => {
+      const device_id = select.value;
+      const package_name = scriptPackageName.value.trim();
+      const pattern = memorySearchPattern.value.trim();
+      if (!device_id || !package_name || !pattern) {
+        toast("Please select a connected device, enter package name, and input a pattern");
+        return;
+      }
+      toast("Injecting memory scanner... Watch Live Logs.");
+      try {
+        const res = await api("/api/device/memory/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ device_id, package_name, pattern })
+        });
+        toast(res.message || "Memory scan trigger sent");
+      } catch (err) {
+        toast("Memory scan failed: " + err.message);
+      }
+    };
+  }
+
+  // --- JADX Automated APK Decompiler Binding ---
+  const decompilerFileInput = document.getElementById("decompilerFileInput");
+  const uploadDecompilerApkBtn = document.getElementById("uploadDecompilerApkBtn");
+  const decompileStatusLabel = document.getElementById("decompileStatusLabel");
+  const decompileWorkspace = document.getElementById("decompileWorkspace");
+  const decompileTreeColumn = document.getElementById("decompileTreeColumn");
+  const decompileSourceColumn = document.getElementById("decompileSourceColumn");
+  const sourceFileTitle = document.getElementById("sourceFileTitle");
+  const decompiledSourceOutput = document.getElementById("decompiledSourceOutput");
+
+  if (
+    decompilerFileInput && uploadDecompilerApkBtn && decompileStatusLabel &&
+    decompileWorkspace && decompileTreeColumn && decompileSourceColumn &&
+    sourceFileTitle && decompiledSourceOutput
+  ) {
+    let outputDirName = null;
+
+    uploadDecompilerApkBtn.onclick = () => {
+      decompilerFileInput.click();
+    };
+
+    decompilerFileInput.onchange = async () => {
+      if (!decompilerFileInput.files.length) return;
+      const file = decompilerFileInput.files[0];
+      const fd = new FormData();
+      fd.append("file", file);
+
+      decompileStatusLabel.textContent = "Uploading & triggering decompilation...";
+      toast("Decompilation started in background");
+
+      try {
+        const res = await fetch("/api/decompile/upload", {
+          method: "POST",
+          body: fd
+        }).then(r => r.json());
+
+        if (res.status === "success") {
+          outputDirName = res.output_dir_name;
+          decompileStatusLabel.textContent = "Decompiling... check Server Logs";
+          toast("Background decompile thread active");
+          
+          // Show workspace and start checking tree
+          decompileWorkspace.style.display = "flex";
+          setTimeout(refreshTree, 3500);
+        } else {
+          decompileStatusLabel.textContent = "Decompile failed to start";
+          toast(res.message || "Error starting JADX");
+        }
+      } catch (err) {
+        decompileStatusLabel.textContent = "Decompile error";
+        toast("Error: " + err.message);
+      }
+      decompilerFileInput.value = "";
+    };
+
+    const renderNode = (entry) => {
+      const item = document.createElement("div");
+      item.style.paddingLeft = "10px";
+      item.style.margin = "4px 0";
+      
+      const icon = entry.isDir ? "📁" : "📄";
+      const nameSpan = document.createElement("span");
+      nameSpan.textContent = `${icon} ${entry.name}`;
+      nameSpan.style.cursor = "pointer";
+      nameSpan.style.color = entry.isDir ? "var(--cyan)" : "#fff";
+      
+      if (entry.isDir) {
+        const childrenContainer = document.createElement("div");
+        childrenContainer.style.display = "none";
+        nameSpan.onclick = async () => {
+          if (childrenContainer.style.display === "none") {
+            // Load subdirectory contents
+            try {
+              const res = await api(`/api/decompile/tree?dir_name=${outputDirName}&path=${entry.path}`);
+              if (res.status === "success") {
+                childrenContainer.innerHTML = "";
+                res.entries.forEach(child => {
+                  childrenContainer.appendChild(renderNode(child));
+                });
+                childrenContainer.style.display = "block";
+              }
+            } catch (err) {
+              toast("Error loading folder: " + err.message);
+            }
+          } else {
+            childrenContainer.style.display = "none";
+          }
+        };
+        item.appendChild(nameSpan);
+        item.appendChild(childrenContainer);
+      } else {
+        nameSpan.onclick = async () => {
+          sourceFileTitle.textContent = `Viewing: ${entry.name}`;
+          decompiledSourceOutput.textContent = "Loading file content...";
+          try {
+            const res = await api(`/api/decompile/file?dir_name=${outputDirName}&path=${entry.path}`);
+            if (res.status === "success") {
+              decompiledSourceOutput.textContent = res.content || "(empty file)";
+            } else {
+              decompiledSourceOutput.textContent = "ERROR: " + res.message;
+            }
+          } catch (err) {
+            decompiledSourceOutput.textContent = "ERROR: " + err.message;
+          }
+        };
+        item.appendChild(nameSpan);
+      }
+      return item;
+    };
+
+    const refreshTree = async () => {
+      if (!outputDirName) return;
+      try {
+        const res = await api(`/api/decompile/tree?dir_name=${outputDirName}`);
+        if (res.status === "success") {
+          decompileTreeColumn.innerHTML = "";
+          if (res.entries.length === 0) {
+            decompileTreeColumn.innerHTML = "<div style='color:var(--text-dim)'>No files decompiled yet. Click folder names once decompile completes.</div>";
+          } else {
+            res.entries.forEach(entry => {
+              decompileTreeColumn.appendChild(renderNode(entry));
+            });
+          }
+          decompileStatusLabel.textContent = "Source Tree Explorer Active";
+        }
+      } catch (err) {
+        decompileTreeColumn.innerHTML = `<div style="color:var(--red)">Failed to load: ${err.message}</div>`;
+      }
+    };
+
+    // Add manual refresh button to explorer
+    const refBtn = document.createElement("button");
+    refBtn.textContent = "Refresh Tree";
+    refBtn.style.padding = "4px 8px";
+    refBtn.style.fontSize = "11px";
+    refBtn.style.marginBottom = "8px";
+    refBtn.onclick = refreshTree;
+    decompileTreeColumn.parentNode.insertBefore(refBtn, decompileTreeColumn);
+  }
 }
 
 function renderApps(apps) {
@@ -494,11 +1079,20 @@ function renderApps(apps) {
         <b>${a.name}</b><br>
         <span class="mono">${a.package}</span>
         <div class="inline-actions">
+          <button onclick="window.__selectPackage('${a.package}')">Select Target</button>
           <button onclick="window.__objection('${a.package}')">Objection</button>
         </div>
       </div>`
     )
     .join("");
+
+  window.__selectPackage = (pkg) => {
+    const scriptPkg = document.getElementById("scriptPackageName");
+    const storagePkg = document.getElementById("storagePackageName");
+    if (scriptPkg) scriptPkg.value = pkg;
+    if (storagePkg) storagePkg.value = pkg;
+    toast("Target app package selected: " + pkg);
+  };
 
   window.__objection = (pkg) => {
     const sslCommand = deviceType === "android" ? "android sslpinning disable" : "ios sslpinning disable";
@@ -518,18 +1112,46 @@ function bootstrap() {
   if (page === "devices") renderDevicesPage();
   if (page === "apps") renderAppsPage();
 
-  const debugOverlay = document.getElementById("globalDebugOverlay");
-  const openDebugBtn = document.getElementById("openDebugBtn");
-  const toggleDebugBtn = document.getElementById("toggleDebugBtn");
+  // --- Tab switching logic for Logcat vs Server logs ---
+  const tabLogcat = document.getElementById("tabLogcat");
+  const tabServer = document.getElementById("tabServer");
+  const contentLogcat = document.getElementById("contentLogcat");
+  const contentServer = document.getElementById("contentServer");
+  const clearServerLogsBtn = document.getElementById("clearServerLogsBtn");
+  const debugConsole = document.getElementById("debugConsole");
 
-  if (openDebugBtn && debugOverlay && toggleDebugBtn) {
-    openDebugBtn.onclick = () => {
-      debugOverlay.style.display = "flex";
-      openDebugBtn.style.display = "none";
+  if (tabLogcat && tabServer && contentLogcat && contentServer) {
+    tabLogcat.onclick = () => {
+      tabLogcat.classList.add("active");
+      tabLogcat.style.color = "var(--cyan)";
+      tabLogcat.style.borderBottom = "2px solid var(--cyan)";
+      
+      tabServer.classList.remove("active");
+      tabServer.style.color = "var(--text-dim)";
+      tabServer.style.borderBottom = "none";
+      
+      contentLogcat.style.display = "block";
+      contentServer.style.display = "none";
     };
-    toggleDebugBtn.onclick = () => {
-      debugOverlay.style.display = "none";
-      openDebugBtn.style.display = "block";
+
+    tabServer.onclick = () => {
+      tabServer.classList.add("active");
+      tabServer.style.color = "var(--cyan)";
+      tabServer.style.borderBottom = "2px solid var(--cyan)";
+      
+      tabLogcat.classList.remove("active");
+      tabLogcat.style.color = "var(--text-dim)";
+      tabLogcat.style.borderBottom = "none";
+      
+      contentServer.style.display = "block";
+      contentLogcat.style.display = "none";
+    };
+  }
+
+  if (clearServerLogsBtn && debugConsole) {
+    clearServerLogsBtn.onclick = () => {
+      debugLines = [];
+      debugConsole.textContent = "";
     };
   }
 }

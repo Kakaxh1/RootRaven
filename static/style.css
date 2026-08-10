@@ -10,6 +10,7 @@
   --text-main: #f8fafc;
   --text-dim: #888888;
   --card-shadow: none;
+  --red: #ff3b30;
 }
 
 * { box-sizing: border-box; }
@@ -376,3 +377,51 @@ iframe { width: 100%; border-radius: 10px; border: 1px solid var(--glass-border)
 }
 .app-item b { font-size: 16px; color: #fff; }
 .app-item .mono { font-size: 12px; color: var(--text-dim); }
+
+/* Split columns layout */
+.content-wrapper {
+  display: flex;
+  gap: 24px;
+  padding: 24px 40px;
+  max-width: 100%;
+  width: 100%;
+}
+
+.left-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.right-panel {
+  width: 460px;
+  min-width: 460px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Tabs & console logs styling */
+.tab-btn {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: 0.3s;
+}
+.tab-btn:hover {
+  color: var(--cyan) !important;
+}
+
+@media (max-width: 1200px) {
+  .content-wrapper {
+    flex-direction: column;
+  }
+  .right-panel {
+    width: 100%;
+    min-width: 100%;
+  }
+}

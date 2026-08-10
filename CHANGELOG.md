@@ -13,6 +13,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Global WebSocket-powered floating Live Logs overlay.
 
 ### Changed
-- Name migrated from eShield to RootRaven.
+- Name migrated to RootRaven.
 - Redesigned backend Python logging mechanics directly into SocketIO.
 - Strengthened dynamic `frida-server` binary discovery logic.
