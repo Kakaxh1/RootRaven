@@ -90,25 +90,71 @@ class FridaManager:
         else:
             objection_args = f"-g {package_name} explore"
 
+        full_cmd = f"objection {objection_args}"
         title = f"RootRaven - Objection ({package_name})"
+
         if sys.platform.startswith("win"):
-            # Launch via PowerShell Start-Process to guarantee visible new console window on Windows
-            ps_cmd = f'Start-Process cmd.exe -ArgumentList \'/k title RootRaven - Objection ({package_name}) && objection {objection_args}\''
+            # Create a dedicated .bat launcher script and execute via Win32 ShellExecute (os.startfile)
+            bat_content = f"""@echo off
+title {title}
+color 0b
+echo ========================================================
+echo   RootRaven - Objection Interactive Security Shell
+echo   Target Package: {package_name}
+echo ========================================================
+echo.
+echo [Tip] To disable SSL pinning, run:
+echo       android sslpinning disable
+echo.
+echo Launching: {full_cmd}
+echo.
+{full_cmd}
+echo.
+echo [Session Ended] Press any key to close this terminal...
+pause >nul
+"""
             try:
-                subprocess.Popen(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", ps_cmd])
-                return {"status": "success", "message": f"Opened Objection terminal for {package_name}"}
-            except Exception:
+                bat_dir = os.path.join(tempfile.gettempdir(), "rootraven_launchers")
+                os.makedirs(bat_dir, exist_ok=True)
+                bat_path = os.path.join(bat_dir, f"objection_{package_name}.bat")
+                with open(bat_path, "w", encoding="utf-8") as fp:
+                    fp.write(bat_content)
+
+                # os.startfile invokes ShellExecute to guarantee a visible GUI terminal window
+                os.startfile(bat_path)
+                return {
+                    "status": "success",
+                    "message": f"Opened Objection terminal for {package_name}",
+                    "command": full_cmd,
+                }
+            except Exception as exc:
                 try:
-                    os.system(f'start "RootRaven - Objection" cmd.exe /k "objection {objection_args}"')
-                    return {"status": "success", "message": f"Opened Objection terminal for {package_name}"}
-                except Exception as exc:
-                    return {"status": "error", "message": f"Failed to launch terminal: {str(exc)}"}
+                    subprocess.Popen(f'start "{title}" cmd.exe /k "{full_cmd}"', shell=True)
+                    return {
+                        "status": "success",
+                        "message": f"Opened Objection terminal for {package_name}",
+                        "command": full_cmd,
+                    }
+                except Exception as inner_exc:
+                    return {
+                        "status": "error",
+                        "message": f"Failed to launch terminal: {str(inner_exc)}",
+                        "command": full_cmd,
+                    }
         else:
-            cmd = f'python -c "import os; os.system(\'objection {objection_args}\')"'
+            cmd = f'python -c "import os; os.system(\'{full_cmd}\')"'
             ok, output = self._run(cmd, timeout=5)
             if ok:
-                return {"status": "success", "message": f"Objection launched for {package_name}"}
-            return {"status": "error", "message": output or "Failed to launch Objection"}
+                return {
+                    "status": "success",
+                    "message": f"Objection launched for {package_name}",
+                    "command": full_cmd,
+                }
+            return {
+                "status": "error",
+                "message": output or "Failed to launch Objection",
+                "command": full_cmd,
+            }
 
     def bypass_ssl_pinning(self, device_type):
         value = "android sslpinning disable" if device_type == "android" else "ios sslpinning disable"
