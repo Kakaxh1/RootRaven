@@ -1048,5 +1048,141 @@ def handle_stop_logcat(data):
 
 
 
+# ─────────────────────────────────────────────────────────────
+# Frida Script Hub & Execution API
+# ─────────────────────────────────────────────────────────────
+
+@app.route("/api/scripts", methods=["GET", "POST"])
+def manage_scripts():
+    if request.method == "GET":
+        return jsonify(frida_manager.get_scripts())
+    payload = request.json or {}
+    name = (payload.get("name") or "").strip()
+    content = payload.get("content") or ""
+    if not name:
+        return jsonify({"status": "error", "message": "Script name is required"}), 400
+    res = frida_manager.save_script(name, content)
+    return jsonify(res)
+
+
+@app.route("/api/scripts/<path:name>", methods=["DELETE"])
+def delete_script(name):
+    res = frida_manager.delete_script(name)
+    return jsonify(res)
+
+
+@socketio.on("run_frida_script")
+def handle_run_frida_script(data):
+    payload = data or {}
+    device_id = payload.get("device_id")
+    package_name = (payload.get("package_name") or "").strip()
+    script_content = payload.get("script_content") or ""
+
+    if not device_id or not package_name or not script_content:
+        emit("frida_script_status", {"status": "error", "message": "Device, package name, and script content are required"})
+        return
+
+    device = device_manager.get_device(device_id)
+    if not device:
+        emit("frida_script_status", {"status": "error", "message": "Device not found"})
+        return
+
+    process_key = f"{device_id}_{package_name}"
+    if process_key in RUNNING_FRIDA_PROCESSES:
+        try:
+            RUNNING_FRIDA_PROCESSES[process_key].terminate()
+        except Exception:
+            pass
+        RUNNING_FRIDA_PROCESSES.pop(process_key, None)
+
+    # Write script to temporary file for frida CLI execution
+    temp_script_path = os.path.join(tempfile.gettempdir(), f"frida_hook_{uuid.uuid4().hex[:8]}.js")
+    with open(temp_script_path, "w", encoding="utf-8") as fp:
+        fp.write(script_content)
+
+    # Determine connection argument for Frida
+    target_ip = device.get("ip", "")
+    is_usb = not target_ip or ("." not in target_ip and ":" not in target_ip)
+
+    if is_usb:
+        target_flag = "-U"
+    else:
+        # Check if USB serial or network target
+        target_flag = f"-H {target_ip}:27042"
+
+    cmd = f'frida {target_flag} -f {package_name} -l "{temp_script_path}" --no-pause'
+    try:
+        proc = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+            shell=True
+        )
+        RUNNING_FRIDA_PROCESSES[process_key] = proc
+        emit("frida_script_status", {"status": "success", "message": f"Injected script into {package_name}"})
+        socketio.emit("debug_log", {"source": "FRIDA", "message": f"Started hook process for {package_name}"})
+
+        def stream_frida_output(process, key, tmp_path):
+            try:
+                for line in iter(process.stdout.readline, ""):
+                    cleaned = line.rstrip()
+                    if cleaned:
+                        socketio.emit("frida_script_output", {"line": cleaned})
+                        socketio.emit("debug_log", {"source": "FRIDA", "message": cleaned})
+                process.stdout.close()
+            except Exception:
+                pass
+            finally:
+                try:
+                    process.wait(timeout=2)
+                except Exception:
+                    pass
+                if os.path.exists(tmp_path):
+                    try:
+                        os.remove(tmp_path)
+                    except Exception:
+                        pass
+                RUNNING_FRIDA_PROCESSES.pop(key, None)
+                socketio.emit("frida_script_status", {"status": "info", "message": "Frida hook process ended"})
+
+        threading.Thread(target=stream_frida_output, args=(proc, process_key, temp_script_path), daemon=True).start()
+
+    except Exception as exc:
+        emit("frida_script_status", {"status": "error", "message": "Failed to launch Frida: " + str(exc)})
+
+
+@socketio.on("stop_frida_script")
+def handle_stop_frida_script(data):
+    payload = data or {}
+    device_id = payload.get("device_id")
+    package_name = (payload.get("package_name") or "").strip()
+    process_key = f"{device_id}_{package_name}"
+    proc = RUNNING_FRIDA_PROCESSES.pop(process_key, None)
+    if proc:
+        try:
+            proc.terminate()
+            emit("frida_script_status", {"status": "success", "message": f"Stopped Frida hook on {package_name}"})
+        except Exception as exc:
+            emit("frida_script_status", {"status": "error", "message": "Error stopping Frida: " + str(exc)})
+    else:
+        # Try stopping any process for this device
+        stopped = False
+        for k in list(RUNNING_FRIDA_PROCESSES.keys()):
+            if k.startswith(device_id):
+                p = RUNNING_FRIDA_PROCESSES.pop(k, None)
+                if p:
+                    try:
+                        p.terminate()
+                        stopped = True
+                    except Exception:
+                        pass
+        if stopped:
+            emit("frida_script_status", {"status": "success", "message": "Stopped Frida hook process"})
+        else:
+            emit("frida_script_status", {"status": "info", "message": "No running Frida session found"})
+
+
 if __name__ == "__main__":
     socketio.run(app, debug=True, host="0.0.0.0", port=5000)

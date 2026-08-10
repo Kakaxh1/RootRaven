@@ -78,27 +78,44 @@
           <section class="card">
             <h2>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; color:var(--cyan);"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
-              <span>Frida Script Hub</span>
+              <span>Frida Script Hub & Dynamic Hooking</span>
             </h2>
-            <p>Inject custom javascript hooks into target application processes.</p>
-            <div class="row">
-              <select id="scriptSelect" style="max-width:250px;"></select>
-              <input id="newScriptName" placeholder="custom_hook.js" style="max-width:180px;" />
-              <button id="saveScriptBtn">Save Script</button>
-              <button id="deleteScriptBtn" style="border-color:var(--red); color:var(--red);">Delete</button>
+            <p>Draft, persist, and execute custom JavaScript instrumentation scripts in target application processes.</p>
+            
+            <div class="row" style="gap:10px; align-items:center;">
+              <select id="scriptSelect" style="flex:2; min-width:220px;"></select>
+              <input id="newScriptName" placeholder="script_name.js" style="flex:2; min-width:160px;" />
+              <button id="newScriptBtn" type="button" style="border-color:rgba(255,255,255,0.2);">+ New</button>
+              <button id="saveScriptBtn" type="button" style="background:#fff; color:#000; font-weight:700;">Save Script</button>
+              <button id="deleteScriptBtn" type="button" style="border-color:rgba(255,59,48,0.4); color:#ff6b6b;">Delete</button>
             </div>
+
             <div style="margin-top:12px; display:flex; flex-direction:column; gap:8px;">
-              <label style="font-size:13px; color:var(--text-dim);">Selected Hook Script Content:</label>
-              <textarea id="scriptContentArea" style="width:100%; height:180px; font-family:'JetBrains Mono', monospace; font-size:12px; background:rgba(0,0,0,0.5); color:#00f0ff; border:1px solid var(--glass-border); border-radius:4px; padding:10px; box-sizing:border-box; resize:vertical;"></textarea>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <label style="font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-dim);">Hook Script Source Code (JavaScript):</label>
+                <span id="scriptStatusLabel" style="font-size:11px; font-family:'JetBrains Mono'; color:var(--text-dim);">Ready</span>
+              </div>
+              <textarea id="scriptContentArea" style="width:100%; height:200px; font-family:'JetBrains Mono', monospace; font-size:12px; background:#000; color:#00f0ff; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:12px; box-sizing:border-box; resize:vertical; line-height:1.5; outline:none;" placeholder="// Write your Frida JavaScript hook here..."></textarea>
             </div>
-            <div class="row" style="margin-top:12px;">
-              <input id="scriptPackageName" placeholder="Target Package Name (e.g. com.reliance.businesseasy2)" style="flex:1;" />
-              <button id="runScriptBtn" style="background:var(--cyan); color:#000; font-weight:700;">Inject Script</button>
-              <button id="stopScriptBtn" style="border-color:var(--red); color:var(--red);">Stop Injection</button>
+
+            <div class="row" style="margin-top:14px; align-items:center; gap:10px;">
+              <input id="scriptPackageName" placeholder="Target App Package (e.g. com.reliance.businesseasy2)" style="flex:3; min-width:240px;" />
+              <button id="runScriptBtn" type="button" style="background:var(--cyan); color:#000; font-weight:700; flex:1;">Inject & Run</button>
+              <button id="stopScriptBtn" type="button" style="border-color:rgba(255,59,48,0.5); color:#ff6b6b; flex:1;">Stop Hook</button>
             </div>
-            <div class="row" style="margin-top:16px; border-top:1px solid rgba(255,255,255,0.05); padding-top:16px; align-items:center; gap:8px;">
-              <input id="memorySearchPattern" placeholder="String Pattern to scan in process memory (e.g. API_KEY)" style="flex:1;" />
-              <button id="scanMemoryBtn" style="background:var(--cyan); color:#000; font-weight:700;">Scan Process Memory</button>
+
+            <!-- Live Frida Output Console -->
+            <div style="margin-top:16px; border-top:1px solid rgba(255,255,255,0.06); padding-top:14px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span style="font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-dim);">Frida Execution Output:</span>
+                <button id="clearFridaOutBtn" type="button" style="padding:4px 10px; font-size:11px;">Clear Output</button>
+              </div>
+              <pre id="fridaOutputConsole" class="mono debug-console" style="min-height:120px; max-height:240px; font-size:12px; margin:0;"></pre>
+            </div>
+
+            <div class="row" style="margin-top:16px; border-top:1px solid rgba(255,255,255,0.06); padding-top:16px; align-items:center; gap:10px;">
+              <input id="memorySearchPattern" placeholder="String Pattern to scan in process memory (e.g. API_KEY, TOKEN)" style="flex:1;" />
+              <button id="scanMemoryBtn" style="background:#fff; color:#000; font-weight:700;">Scan Process Memory</button>
             </div>
           </section>
 

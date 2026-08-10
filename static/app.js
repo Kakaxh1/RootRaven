@@ -156,7 +156,27 @@ function attachSocketListeners() {
     if (getPage() !== "apps") return;
     renderApps(payload.apps || []);
   });
-  socket.on("frida_script_status", (d) => toast(d.message || "Frida script status update"));
+  socket.on("frida_script_output", (d) => {
+    const box = document.getElementById("fridaOutputConsole");
+    if (box && d.line) {
+      box.textContent += d.line + "\n";
+      box.scrollTop = box.scrollHeight;
+    }
+  });
+  socket.on("frida_script_status", (d) => {
+    toast(d.message || "Frida script status update");
+    const label = document.getElementById("scriptStatusLabel");
+    if (label) {
+      label.textContent = d.message || "Updated";
+      if (d.status === "success") {
+        label.style.color = "#3ddc84";
+      } else if (d.status === "error") {
+        label.style.color = "var(--red)";
+      } else {
+        label.style.color = "var(--text-dim)";
+      }
+    }
+  });
   socket.on("logcat_status", (d) => toast(d.message || "Logcat status update"));
   socket.on("logcat_line", (d) => {
     const box = document.getElementById("logcatOutput");
@@ -749,12 +769,15 @@ async function renderAppsPage() {
   // --- Frida Script Hub Binding ---
   const scriptSelect = document.getElementById("scriptSelect");
   const newScriptName = document.getElementById("newScriptName");
+  const newScriptBtn = document.getElementById("newScriptBtn");
   const saveScriptBtn = document.getElementById("saveScriptBtn");
   const deleteScriptBtn = document.getElementById("deleteScriptBtn");
   const scriptContentArea = document.getElementById("scriptContentArea");
   const scriptPackageName = document.getElementById("scriptPackageName");
   const runScriptBtn = document.getElementById("runScriptBtn");
   const stopScriptBtn = document.getElementById("stopScriptBtn");
+  const fridaOutputConsole = document.getElementById("fridaOutputConsole");
+  const clearFridaOutBtn = document.getElementById("clearFridaOutBtn");
 
   if (
     scriptSelect && newScriptName && saveScriptBtn && deleteScriptBtn &&
@@ -781,6 +804,20 @@ async function renderAppsPage() {
         toast("Failed to load scripts: " + err.message);
       }
     };
+
+    if (newScriptBtn) {
+      newScriptBtn.onclick = () => {
+        newScriptName.value = "my_custom_hook.js";
+        scriptContentArea.value = `// Frida Custom Instrumentation Script\nJava.perform(function() {\n    console.log("[*] Hook injected into process: " + Process.id);\n    \n    // Hook example:\n    // var Target = Java.use("com.example.MainActivity");\n    // Target.checkSecurity.implementation = function() {\n    //     console.log("[*] Bypassed checkSecurity()");\n    //     return true;\n    // };\n});\n`;
+        toast("Drafting new custom script");
+      };
+    }
+
+    if (clearFridaOutBtn && fridaOutputConsole) {
+      clearFridaOutBtn.onclick = () => {
+        fridaOutputConsole.textContent = "";
+      };
+    }
 
     scriptSelect.onchange = () => {
       const selected = scriptList.find(s => s.name === scriptSelect.value);
@@ -814,7 +851,7 @@ async function renderAppsPage() {
 
     deleteScriptBtn.onclick = async () => {
       if (!scriptSelect.value) return;
-      if (!confirm("Are you sure you want to delete this script?")) return;
+      if (!confirm(`Are you sure you want to delete "${scriptSelect.value}"?`)) return;
       try {
         const res = await api(`/api/scripts/${scriptSelect.value}`, { method: "DELETE" });
         toast(res.message || "Script deleted");
@@ -830,15 +867,19 @@ async function renderAppsPage() {
       const content = scriptContentArea.value;
       const device_id = select.value;
       if (!package_name || !content || !device_id) {
-        toast("Please verify device connection, package name, and script content");
+        toast("Please select a target device, enter app package, and provide hook code");
         return;
+      }
+      if (fridaOutputConsole) {
+        const ts = new Date().toLocaleTimeString();
+        fridaOutputConsole.textContent += `\n[${ts}] [SYSTEM] Injected hook into ${package_name}...\n`;
       }
       socket.emit("run_frida_script", {
         device_id,
         package_name,
         script_content: content
       });
-      toast("Injected script trigger sent");
+      toast("Hook injected — streaming output");
     };
 
     stopScriptBtn.onclick = () => {
@@ -847,6 +888,10 @@ async function renderAppsPage() {
       if (!package_name || !device_id) {
         toast("Device connection and package name are required");
         return;
+      }
+      if (fridaOutputConsole) {
+        const ts = new Date().toLocaleTimeString();
+        fridaOutputConsole.textContent += `[${ts}] [SYSTEM] Stop request sent for ${package_name}\n`;
       }
       socket.emit("stop_frida_script", { device_id, package_name });
       toast("Stop request sent");
