@@ -218,7 +218,7 @@ function setupLogsPanel(devices) {
   if (logcatDeviceSelect && logcatFilterText && startLogcatBtn && stopLogcatBtn && clearLogcatBtn && logcatOutput) {
     const androidDevices = devices.filter(d => d.type === "android");
     logcatDeviceSelect.innerHTML = androidDevices.length
-      ? androidDevices.map(d => `<option value="${d.id}">${d.name} (${d.ip})</option>`).join("")
+      ? androidDevices.map(d => `<option value="${escapeHtml(d.id)}">${escapeHtml(d.name)} (${escapeHtml(d.ip)})</option>`).join("")
       : "<option value=''>No Android Devices</option>";
 
     startLogcatBtn.onclick = () => {
@@ -319,7 +319,7 @@ async function renderDashboard() {
   if (burpDeviceSelect && burpHostIp && setProxyBtn) {
     const androidDevices = devices.filter(d => d.type === "android");
     burpDeviceSelect.innerHTML = androidDevices.length
-      ? androidDevices.map(d => `<option value="${d.id}">${d.name} (${d.ip})</option>`).join("")
+      ? androidDevices.map(d => `<option value="${escapeHtml(d.id)}">${escapeHtml(d.name)} (${escapeHtml(d.ip)})</option>`).join("")
       : "<option value=''>No Android Devices</option>";
 
     try {
@@ -428,7 +428,7 @@ async function renderDashboard() {
     connectSshBtn && runSshBtn && disconnectSshBtn && clearSshOut && sshOut
   ) {
     sshIp.innerHTML = devices.length
-      ? devices.map((d) => `<option value="${d.ip}" data-id="${d.ssh_id || ''}" data-pass="${d.ssh_pass || ''}">${d.name} - ${d.ip}</option>`).join("")
+      ? devices.map((d) => `<option value="${escapeHtml(d.ip)}" data-id="${escapeHtml(d.ssh_id || '')}" data-pass="${escapeHtml(d.ssh_pass || '')}">${escapeHtml(d.name)} - ${escapeHtml(d.ip)}</option>`).join("")
       : "<option value=''>No devices</option>";
 
     sshIp.onchange = () => {
@@ -532,7 +532,7 @@ async function renderDashboard() {
   ) {
     const androidDevices = devices.filter(d => d.type === "android");
     adbShellIp.innerHTML = androidDevices.length
-      ? androidDevices.map(d => `<option value="${d.id}">${d.name} (${d.ip})</option>`).join("")
+      ? androidDevices.map(d => `<option value="${escapeHtml(d.id)}">${escapeHtml(d.name)} (${escapeHtml(d.ip)})</option>`).join("")
       : "<option value=''>No Android Devices</option>";
 
     let adbSessionId = null;
@@ -801,7 +801,7 @@ async function renderAppsPage() {
     select.innerHTML = "<option value=''>No devices</option>";
     return;
   }
-  select.innerHTML = devices.map((d) => `<option value="${d.id}">${d.name} (${d.type})</option>`).join("");
+  select.innerHTML = devices.map((d) => `<option value="${escapeHtml(d.id)}">${escapeHtml(d.name)} (${escapeHtml(d.type)})</option>`).join("");
 
   setupLogsPanel(devices);
 
@@ -1287,9 +1287,9 @@ async function renderAppsPage() {
         if (res.status === "success") {
           const counts = res.counts || {};
           reconMetaGrid.innerHTML = `
-            <div class="recon-stat-box"><span class="recon-stat-label">Version</span><span class="recon-stat-val">${res.version_name} (${res.version_code})</span></div>
-            <div class="recon-stat-box"><span class="recon-stat-label">SDK Levels</span><span class="recon-stat-val">Min: ${res.min_sdk} | Target: ${res.target_sdk}</span></div>
-            <div class="recon-stat-box"><span class="recon-stat-label">App UID</span><span class="recon-stat-val">${res.uid}</span></div>
+            <div class="recon-stat-box"><span class="recon-stat-label">Version</span><span class="recon-stat-val">${escapeHtml(res.version_name)} (${escapeHtml(res.version_code)})</span></div>
+            <div class="recon-stat-box"><span class="recon-stat-label">SDK Levels</span><span class="recon-stat-val">Min: ${escapeHtml(res.min_sdk)} | Target: ${escapeHtml(res.target_sdk)}</span></div>
+            <div class="recon-stat-box"><span class="recon-stat-label">App UID</span><span class="recon-stat-val">${escapeHtml(res.uid)}</span></div>
             <div class="recon-stat-box"><span class="recon-stat-label">Activities / Services</span><span class="recon-stat-val">${counts.activities || 0} / ${counts.services || 0}</span></div>
             <div class="recon-stat-box"><span class="recon-stat-label">Receivers / Providers</span><span class="recon-stat-val">${counts.receivers || 0} / ${counts.providers || 0}</span></div>
             <div class="recon-stat-box"><span class="recon-stat-label">Permissions Count</span><span class="recon-stat-val">${counts.permissions || 0} Declared</span></div>
@@ -1351,18 +1351,24 @@ async function renderAppsPage() {
             prefFindingsList.innerHTML = `<div style="color:#3ddc84; font-size:13px;">No high-risk secrets or credentials detected across ${res.scanned_files_count || 0} XML preference files.</div>`;
           } else {
             prefFindingsList.innerHTML = findings.map(f => `
-              <div class="vuln-card ${f.severity.toLowerCase()}">
+              <div class="vuln-card ${escapeHtml(f.severity.toLowerCase())}">
                 <div class="vuln-card-header">
-                  <span class="vuln-title">${f.type}</span>
-                  <span class="vuln-badge ${f.severity.toLowerCase()}">${f.severity}</span>
+                  <span class="vuln-title">${escapeHtml(f.type)}</span>
+                  <span class="vuln-badge ${escapeHtml(f.severity.toLowerCase())}">${escapeHtml(f.severity)}</span>
                 </div>
-                <div class="vuln-desc"><b>Source File:</b> <code style="color:var(--cyan);">${f.file}</code></div>
-                <div class="vault-code-block">${f.masked_value}</div>
+                <div class="vuln-desc"><b>Source File:</b> <code style="color:var(--cyan);">${escapeHtml(f.file)}</code></div>
+                <div class="vault-code-block">${escapeHtml(f.masked_value)}</div>
                 <div style="display:flex; justify-content:flex-end; gap:8px;">
-                  <button type="button" class="quick-chip-btn" onclick="window.__copyText('${f.raw_value.replace(/'/g, "\\'")}')">Copy Secret</button>
+                  <button type="button" class="quick-chip-btn copy-secret-btn" data-raw="${escapeHtml(f.raw_value)}">Copy Secret</button>
                 </div>
               </div>
             `).join("");
+
+            prefFindingsList.querySelectorAll(".copy-secret-btn").forEach(btn => {
+              btn.onclick = () => {
+                window.__copyText(btn.getAttribute("data-raw"));
+              };
+            });
           }
           prefScannerResultsWrap.style.display = "block";
           toast(`Discovered ${findings.length} sensitive values`);
