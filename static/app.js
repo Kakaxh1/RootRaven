@@ -1271,14 +1271,30 @@ function renderApps(apps) {
     toast("Target app package selected: " + pkg);
   };
 
-  window.__objection = (pkg) => {
-    const deviceId = select ? select.value : null;
-    const sslCommand = deviceType === "android" ? "android sslpinning disable" : "ios sslpinning disable";
+  window.__objection = async (pkg) => {
+    const devSelect = document.getElementById("appDeviceSelect");
+    const deviceId = devSelect ? devSelect.value : null;
+    const selectedText = devSelect && devSelect.options[devSelect.selectedIndex] ? devSelect.options[devSelect.selectedIndex].textContent.toLowerCase() : "";
+    const isIos = selectedText.includes("(ios)");
+    const sslCommand = isIos ? "ios sslpinning disable" : "android sslpinning disable";
+
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(sslCommand).catch(() => {});
     }
-    toast(`Opening Objection terminal for ${pkg}... (SSL bypass command copied)`);
-    socket.emit("launch_objection", { app_name: pkg, device_id: deviceId });
+    toast(`Opening Objection terminal for ${pkg}... (SSL bypass copied)`);
+
+    try {
+      const res = await api("/api/objection/launch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ app_name: pkg, device_id: deviceId })
+      });
+      if (res && res.message) {
+        toast(res.message);
+      }
+    } catch (e) {
+      socket.emit("launch_objection", { app_name: pkg, device_id: deviceId });
+    }
   };
 }
 

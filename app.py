@@ -865,6 +865,16 @@ def handle_get_apps(data):
     emit("app_list", {"status": "success", "apps": apps})
 
 
+@app.route("/api/objection/launch", methods=["POST"])
+def api_launch_objection():
+    payload = request.json or {}
+    app_name = payload.get("app_name", "")
+    device_id = payload.get("device_id")
+    device = device_manager.get_device(device_id) if device_id else None
+    res = frida_manager.launch_objection(app_name, device)
+    return jsonify(res)
+
+
 @socketio.on("launch_objection")
 def handle_objection(data):
     payload = data or {}

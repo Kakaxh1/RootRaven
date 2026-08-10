@@ -92,13 +92,17 @@ class FridaManager:
 
         title = f"RootRaven - Objection ({package_name})"
         if sys.platform.startswith("win"):
-            # Launch in an interactive Windows command prompt window
-            cmd = f'start "{title}" cmd.exe /k "objection {objection_args}"'
+            # Launch via PowerShell Start-Process to guarantee visible new console window on Windows
+            ps_cmd = f'Start-Process cmd.exe -ArgumentList \'/k title RootRaven - Objection ({package_name}) && objection {objection_args}\''
             try:
-                subprocess.Popen(cmd, shell=True)
+                subprocess.Popen(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", ps_cmd])
                 return {"status": "success", "message": f"Opened Objection terminal for {package_name}"}
-            except Exception as exc:
-                return {"status": "error", "message": f"Failed to launch terminal: {str(exc)}"}
+            except Exception:
+                try:
+                    os.system(f'start "RootRaven - Objection" cmd.exe /k "objection {objection_args}"')
+                    return {"status": "success", "message": f"Opened Objection terminal for {package_name}"}
+                except Exception as exc:
+                    return {"status": "error", "message": f"Failed to launch terminal: {str(exc)}"}
         else:
             cmd = f'python -c "import os; os.system(\'objection {objection_args}\')"'
             ok, output = self._run(cmd, timeout=5)
