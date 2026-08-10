@@ -78,31 +78,33 @@ class FridaManager:
         device_type = device.get("type", "android") if isinstance(device, dict) else "android"
         is_usb = not target_ip or ("." not in target_ip and ":" not in target_ip)
 
-        # Build specific objection command targeting this device
+        # Build specific objection command arguments
         if is_usb and target_ip:
-            # USB with specific serial ID
-            objection_target = f"--serial {target_ip}"
+            # USB device with specific serial ID (-S)
+            objection_args = f"-S {target_ip} -g {package_name} explore"
         elif not is_usb and target_ip:
-            # Network target host:port
+            # Network host and port (-N -h ... -p ...)
             host_only = target_ip.split(":")[0]
             port_only = target_ip.split(":")[1] if ":" in target_ip else "27042"
-            objection_target = f"-N -h {host_only} -p {port_only}"
-        elif device_type == "android":
-            objection_target = "-d"
+            objection_args = f"-N -h {host_only} -p {port_only} -g {package_name} explore"
         else:
-            objection_target = ""
+            objection_args = f"-g {package_name} explore"
 
-        objection_args = f"{objection_target} -g {package_name} explore".strip()
-
+        title = f"RootRaven - Objection ({package_name})"
         if sys.platform.startswith("win"):
-            cmd = f'start cmd /k "objection {objection_args}"'
+            # Launch in an interactive Windows command prompt window
+            cmd = f'start "{title}" cmd.exe /k "objection {objection_args}"'
+            try:
+                subprocess.Popen(cmd, shell=True)
+                return {"status": "success", "message": f"Opened Objection terminal for {package_name}"}
+            except Exception as exc:
+                return {"status": "error", "message": f"Failed to launch terminal: {str(exc)}"}
         else:
             cmd = f'python -c "import os; os.system(\'objection {objection_args}\')"'
-
-        ok, output = self._run(cmd, timeout=5)
-        if ok:
-            return {"status": "success", "message": f"Objection launched for {package_name} on {target_ip or 'device'}"}
-        return {"status": "error", "message": output or "Failed to launch Objection"}
+            ok, output = self._run(cmd, timeout=5)
+            if ok:
+                return {"status": "success", "message": f"Objection launched for {package_name}"}
+            return {"status": "error", "message": output or "Failed to launch Objection"}
 
     def bypass_ssl_pinning(self, device_type):
         value = "android sslpinning disable" if device_type == "android" else "ios sslpinning disable"
