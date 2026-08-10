@@ -39,6 +39,16 @@ async function api(path, options = {}) {
   return res.json();
 }
 
+function escapeHtml(str) {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function getPage() {
   const p = window.location.pathname;
   if (p === "/devices") return "devices";
@@ -258,17 +268,17 @@ async function renderDashboard() {
       const badgeLabel = device.type === "ios" ? "iOS" : "Android";
       const isUsbSerial = !device.ip.includes(".") && !device.ip.includes(":");
       const ipLabelText = isUsbSerial ? "USB SERIAL" : "IP ADDRESS";
-      const desc = device.description ? `<div class="device-card-desc">${device.description}</div>` : "";
+      const desc = device.description ? `<div class="device-card-desc">${escapeHtml(device.description)}</div>` : "";
 
       card.className = `device-card ${cardClass}`;
       card.innerHTML = `
         <div class="device-card-top">
-          <div class="device-card-name">${device.name}</div>
+          <div class="device-card-name">${escapeHtml(device.name)}</div>
           <span class="device-badge ${badgeClass}">${getPlatformIcon(device.type, 13)} ${badgeLabel}</span>
         </div>
         <div class="device-card-ip-wrap">
           <span class="device-card-ip-label">${ipLabelText}</span>
-          <span class="device-card-ip">${device.ip}</span>
+          <span class="device-card-ip">${escapeHtml(device.ip)}</span>
         </div>
         ${desc}
       `;
@@ -712,18 +722,18 @@ async function renderDevicesPage() {
       const badgeClass = d.type === "ios" ? "badge-ios" : "badge-android";
       const cardClass = d.type === "ios" ? "ios" : "android";
       const badgeLabel = d.type === "ios" ? "iOS" : "Android";
-      const desc = d.description ? `<div class="device-card-desc">${d.description}</div>` : `<div class="device-card-desc" style="opacity:0.4;font-style:italic;">No description provided</div>`;
+      const desc = d.description ? `<div class="device-card-desc">${escapeHtml(d.description)}</div>` : `<div class="device-card-desc" style="opacity:0.4;font-style:italic;">No description provided</div>`;
       const isUsbSerial = !d.ip.includes(".") && !d.ip.includes(":");
       const ipLabelText = isUsbSerial ? "USB SERIAL" : "IP ADDRESS";
 
       return `<div class="device-card ${cardClass}">
         <div class="device-card-top">
-          <div class="device-card-name">${d.name}</div>
+          <div class="device-card-name">${escapeHtml(d.name)}</div>
           <span class="device-badge ${badgeClass}">${getPlatformIcon(d.type, 13)} ${badgeLabel}</span>
         </div>
         <div class="device-card-ip-wrap">
           <span class="device-card-ip-label">${ipLabelText}</span>
-          <span class="device-card-ip">${d.ip}</span>
+          <span class="device-card-ip">${escapeHtml(d.ip)}</span>
         </div>
         ${desc}
         <div class="device-card-actions">
@@ -1930,22 +1940,22 @@ async function renderVaultPage() {
       <div class="vault-card">
         <div class="vault-card-header">
           <div>
-            <div class="vault-card-title">${item.title}</div>
-            <div style="font-size:11px; color:var(--text-dim); margin-top:2px;">${item.category} • ${item.package || 'Global'} • ${item.created_at}</div>
+            <div class="vault-card-title">${escapeHtml(item.title)}</div>
+            <div style="font-size:11px; color:var(--text-dim); margin-top:2px;">${escapeHtml(item.category)} • ${escapeHtml(item.package || 'Global')} • ${escapeHtml(item.created_at)}</div>
           </div>
           <button type="button" class="quick-chip-btn" style="color:#ff6b6b; border-color:rgba(255,59,48,0.3);" onclick="window.__deleteVaultItem('${item.id}')">Delete</button>
         </div>
 
         ${(item.tags && item.tags.length) ? `
           <div style="display:flex; gap:6px; flex-wrap:wrap;">
-            ${item.tags.map(t => `<span class="vault-tag">#${t}</span>`).join('')}
+            ${item.tags.map(t => `<span class="vault-tag">#${escapeHtml(t)}</span>`).join('')}
           </div>
         ` : ''}
 
-        <div class="vault-code-block">${item.content}</div>
+        <div class="vault-code-block">${escapeHtml(item.content)}</div>
 
         <div style="display:flex; justify-content:flex-end;">
-          <button type="button" class="quick-chip-btn" onclick="window.__copyText('${(item.content || '').replace(/'/g, "\\'")}')">Copy Data</button>
+          <button type="button" class="quick-chip-btn" onclick="window.__copyText('${(item.content || '').replace(/'/g, "\\'").replace(/"/g, '&quot;')}')">Copy Data</button>
         </div>
       </div>
     `).join("");
