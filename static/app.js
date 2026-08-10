@@ -177,6 +177,7 @@ function attachSocketListeners() {
       }
     }
   });
+  socket.on("objection_status", (d) => toast(d.message || "Objection status update"));
   socket.on("logcat_status", (d) => toast(d.message || "Logcat status update"));
   socket.on("logcat_line", (d) => {
     const box = document.getElementById("logcatOutput");
@@ -1273,11 +1274,10 @@ function renderApps(apps) {
   window.__objection = (pkg) => {
     const deviceId = select ? select.value : null;
     const sslCommand = deviceType === "android" ? "android sslpinning disable" : "ios sslpinning disable";
-    const popupText = `After Objection opens, run:\n\n${sslCommand}\n\n(Copied to clipboard)`;
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(sslCommand).catch(() => {});
     }
-    window.alert(popupText);
+    toast(`Opening Objection terminal for ${pkg}... (SSL bypass command copied)`);
     socket.emit("launch_objection", { app_name: pkg, device_id: deviceId });
   };
 }
