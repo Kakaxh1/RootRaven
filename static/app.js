@@ -511,61 +511,119 @@ async function renderDashboard() {
 
 async function renderDevicesPage() {
   const form = document.getElementById("deviceForm");
-  const wrap = document.getElementById("deviceTableWrap");
-  if (!form || !wrap) return;
+  const grid = document.getElementById("deviceGrid");
+  if (!form || !grid) return;
+
+  const modal = document.getElementById("deviceModal");
+  const openAddBtn = document.getElementById("openAddDeviceBtn");
+  const closeBtn = document.getElementById("closeModalBtn");
+  const cancelBtn = document.getElementById("cancelModalBtn");
+  const modalTitle = document.getElementById("modalTitle");
+  const submitBtn = document.getElementById("modalSubmitBtn");
+  const countPill = document.getElementById("deviceCountPill");
 
   const idField = document.getElementById("deviceId");
   const nameField = document.getElementById("deviceName");
   const ipField = document.getElementById("deviceIp");
+  const ipLabel = document.getElementById("deviceIpLabel");
   const typeField = document.getElementById("deviceType");
   const descField = document.getElementById("deviceDescription");
   const sshIdField = document.getElementById("deviceSshId");
   const sshPassField = document.getElementById("deviceSshPass");
-  const updatePlaceholders = () => {
-    if (typeField.value === "ios") {
-      nameField.placeholder = "iOS device name (e.g. iPhone 14)";
-      ipField.placeholder = "iOS IP/host (e.g. 192.168.1.120)";
+
+  const platformBtnAndroid = document.getElementById("platformBtnAndroid");
+  const platformBtnIos = document.getElementById("platformBtnIos");
+
+  const setPlatform = (platform) => {
+    typeField.value = platform;
+    if (platform === "ios") {
+      if (platformBtnAndroid) platformBtnAndroid.classList.remove("active");
+      if (platformBtnIos) platformBtnIos.classList.add("active");
+      if (ipLabel) ipLabel.textContent = "Network IP Address";
+      if (nameField) nameField.placeholder = "e.g. iPhone 14 Pro (iOS 16.5)";
+      if (ipField) ipField.placeholder = "e.g. 192.168.1.120";
     } else {
-      nameField.placeholder = "Android device name (e.g. Pixel 7)";
-      ipField.placeholder = "Android IP (e.g. 192.168.1.101)";
+      if (platformBtnIos) platformBtnIos.classList.remove("active");
+      if (platformBtnAndroid) platformBtnAndroid.classList.add("active");
+      if (ipLabel) ipLabel.textContent = "Network IP / USB Serial";
+      if (nameField) nameField.placeholder = "e.g. POCO X3 / Pixel 7";
+      if (ipField) ipField.placeholder = "e.g. 192.168.1.101 or 131b62b1";
     }
   };
-  typeField.onchange = updatePlaceholders;
-  updatePlaceholders();
+
+  if (platformBtnAndroid) {
+    platformBtnAndroid.onclick = () => setPlatform("android");
+  }
+  if (platformBtnIos) {
+    platformBtnIos.onclick = () => setPlatform("ios");
+  }
+
+  const openModal = (editDevice) => {
+    form.reset();
+    idField.value = "";
+    if (editDevice) {
+      modalTitle.textContent = "Edit Target Device";
+      submitBtn.textContent = "Update Device";
+      idField.value = editDevice.id;
+      nameField.value = editDevice.name;
+      ipField.value = editDevice.ip;
+      descField.value = editDevice.description || "";
+      sshIdField.value = editDevice.ssh_id || "";
+      sshPassField.value = editDevice.ssh_pass || "";
+      setPlatform(editDevice.type || "android");
+    } else {
+      modalTitle.textContent = "Add Target Device";
+      submitBtn.textContent = "Save Device";
+      setPlatform("android");
+    }
+    if (modal) modal.classList.add("open");
+  };
+
+  const closeModal = () => { if (modal) modal.classList.remove("open"); };
+
+  if (openAddBtn) openAddBtn.onclick = () => openModal(null);
+  if (closeBtn)   closeBtn.onclick   = closeModal;
+  if (cancelBtn)  cancelBtn.onclick  = closeModal;
+  if (modal) {
+    modal.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
+  }
 
   const paint = async () => {
     const devices = await getDevices();
+    if (countPill) countPill.textContent = devices.length;
     if (!devices.length) {
-      wrap.innerHTML = "<p>No devices saved yet.</p>";
+      grid.innerHTML = `<div class="empty-state"><p>No devices registered yet.</p><button onclick="document.getElementById('openAddDeviceBtn').click()" style="background:#fff;color:#000;font-weight:700;padding:10px 20px;border:none;border-radius:8px;cursor:pointer;">+ Add your first target</button></div>`;
       return;
     }
-    const rows = devices
-      .map(
-        (d) =>
-          `<tr>
-             <td>${d.name}</td>
-             <td class="mono">${d.ip}</td>
-             <td>${d.type}</td>
-             <td style="color:var(--text-dim); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${d.description || ''}</td>
-             <td>
-               <button onclick="window.__editDevice('${d.id}')">Edit</button>
-               <button onclick="window.__deleteDevice('${d.id}')">Delete</button>
-             </td>
-           </tr>`
-      )
-      .join("");
-    wrap.innerHTML = `<table><thead><tr><th>Name</th><th>IP</th><th>Type</th><th>Description</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>`;
+    grid.innerHTML = devices.map((d) => {
+      const badgeClass = d.type === "ios" ? "badge-ios" : "badge-android";
+      const cardClass = d.type === "ios" ? "ios" : "android";
+      const badgeIcon = d.type === "ios" ? "🍎" : "🤖";
+      const badgeLabel = d.type === "ios" ? "iOS" : "Android";
+      const desc = d.description ? `<div class="device-card-desc">${d.description}</div>` : `<div class="device-card-desc" style="opacity:0.4;font-style:italic;">No description provided</div>`;
+      const isUsbSerial = !d.ip.includes(".") && !d.ip.includes(":");
+      const ipLabelText = isUsbSerial ? "USB SERIAL" : "IP ADDRESS";
+
+      return `<div class="device-card ${cardClass}">
+        <div class="device-card-top">
+          <div class="device-card-name">${d.name}</div>
+          <span class="device-badge ${badgeClass}">${badgeIcon} ${badgeLabel}</span>
+        </div>
+        <div class="device-card-ip-wrap">
+          <span class="device-card-ip-label">${ipLabelText}</span>
+          <span class="device-card-ip">${d.ip}</span>
+        </div>
+        ${desc}
+        <div class="device-card-actions">
+          <button class="btn-edit" onclick="window.__editDevice('${d.id}')">Edit</button>
+          <button class="btn-delete" onclick="window.__deleteDevice('${d.id}')">Delete</button>
+        </div>
+      </div>`;
+    }).join("");
 
     window.__editDevice = (id) => {
       const device = devices.find((d) => d.id === id);
-      if (!device) return;
-      idField.value = device.id;
-      nameField.value = device.name;
-      ipField.value = device.ip;
-      typeField.value = device.type;
-      descField.value = device.description || "";
-      sshIdField.value = device.ssh_id || "";
-      sshPassField.value = device.ssh_pass || "";
+      if (device) openModal(device);
     };
 
     window.__deleteDevice = async (id) => {
@@ -573,17 +631,16 @@ async function renderDevicesPage() {
       toast(out.message || "Device deleted");
       await paint();
     };
-
   };
 
   form.onsubmit = async (e) => {
     e.preventDefault();
     const payload = {
-      name: nameField.value,
-      ip: ipField.value,
+      name: nameField.value.trim(),
+      ip: ipField.value.trim(),
       type: typeField.value,
-      description: descField.value,
-      ssh_id: sshIdField.value,
+      description: descField.value.trim(),
+      ssh_id: sshIdField.value.trim(),
       ssh_pass: sshPassField.value,
     };
     let out;
@@ -601,8 +658,7 @@ async function renderDevicesPage() {
       });
     }
     toast(out.message || "Saved");
-    form.reset();
-    idField.value = "";
+    closeModal();
     await paint();
   };
 

@@ -6,8 +6,412 @@
   <title>Devices | RootRaven</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <style>
+    /* ── Header & Toolbar ── */
+    .devices-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .devices-header-title {
+      font-size: 13px;
+      letter-spacing: 1.5px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .devices-count-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      color: #fff;
+    }
+    .btn-add-primary {
+      background: #fff !important;
+      color: #000 !important;
+      font-weight: 700 !important;
+      padding: 10px 22px !important;
+      border: none !important;
+      border-radius: 10px !important;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 0 20px rgba(255,255,255,0.15);
+    }
+    .btn-add-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 0 25px rgba(255,255,255,0.3);
+      background: #f0f0f0 !important;
+    }
+
+    /* ── Device Cards Grid ── */
+    .device-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+    }
+    .device-card {
+      background: #080808;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.25s ease;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    .device-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      opacity: 0.8;
+      transition: opacity 0.25s;
+    }
+    .device-card.android::before {
+      background: linear-gradient(90deg, #3ddc84, #00f0ff);
+    }
+    .device-card.ios::before {
+      background: linear-gradient(90deg, #007aff, #a855f7);
+    }
+    .device-card:hover {
+      border-color: rgba(255,255,255,0.2);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.7);
+    }
+    .device-card:hover::before {
+      opacity: 1;
+    }
+    .device-card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .device-card-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+      line-height: 1.3;
+    }
+    .device-badge {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 20px;
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .badge-android {
+      background: rgba(61,220,132,0.12);
+      color: #3ddc84;
+      border: 1px solid rgba(61,220,132,0.3);
+    }
+    .badge-ios {
+      background: rgba(0,122,255,0.12);
+      color: #5b9cf6;
+      border: 1px solid rgba(0,122,255,0.3);
+    }
+    .device-card-ip-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 8px;
+      padding: 8px 12px;
+    }
+    .device-card-ip-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-dim);
+      font-weight: 600;
+    }
+    .device-card-ip {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: #fff;
+      font-weight: 600;
+    }
+    .device-card-desc {
+      font-size: 13px;
+      color: var(--text-dim);
+      line-height: 1.5;
+      min-height: 20px;
+    }
+    .device-card-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 6px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+    .device-card-actions button {
+      flex: 1;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+    .btn-edit {
+      border: 1px solid rgba(255,255,255,0.2) !important;
+      color: #fff !important;
+      background: rgba(255,255,255,0.04) !important;
+    }
+    .btn-edit:hover {
+      background: rgba(255,255,255,0.1) !important;
+      border-color: #fff !important;
+    }
+    .btn-delete {
+      border: 1px solid rgba(255,59,48,0.3) !important;
+      color: #ff6b6b !important;
+      background: rgba(255,59,48,0.04) !important;
+    }
+    .btn-delete:hover {
+      background: rgba(255,59,48,0.15) !important;
+      border-color: #ff3b30 !important;
+    }
+
+    /* ── Modal Design & Flow ── */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.8);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+      padding: 20px;
+    }
+    .modal-backdrop.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .modal {
+      background: #0d0d0f;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 18px;
+      padding: 30px;
+      width: 100%;
+      max-width: 540px;
+      box-shadow: 0 25px 80px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.05);
+      transform: scale(0.96) translateY(10px);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .modal-backdrop.open .modal {
+      transform: scale(1) translateY(0);
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 22px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .modal-header h3 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      margin: 0;
+      letter-spacing: 0.3px;
+    }
+    .modal-close {
+      background: rgba(255,255,255,0.05) !important;
+      border: 1px solid rgba(255,255,255,0.1) !important;
+      color: var(--text-dim) !important;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      cursor: pointer;
+      padding: 0 !important;
+      transition: all 0.2s;
+    }
+    .modal-close:hover {
+      color: #fff !important;
+      background: rgba(255,255,255,0.12) !important;
+    }
+
+    .modal-form {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    /* Platform Segmented Switcher */
+    .platform-selector-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .platform-selector-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    .platform-pill-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .platform-pill-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      color: var(--text-dim);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .platform-pill-btn:hover {
+      background: rgba(255,255,255,0.07);
+      color: #fff;
+    }
+    .platform-pill-btn.active.android {
+      background: rgba(61,220,132,0.12);
+      border-color: #3ddc84;
+      color: #3ddc84;
+      box-shadow: 0 0 15px rgba(61,220,132,0.15);
+    }
+    .platform-pill-btn.active.ios {
+      background: rgba(0,122,255,0.14);
+      border-color: #007aff;
+      color: #5b9cf6;
+      box-shadow: 0 0 15px rgba(0,122,255,0.2);
+    }
+
+    .modal-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .field-group label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    .field-group input {
+      width: 100%;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 9px;
+      padding: 11px 14px;
+      color: #fff;
+      font-size: 13px;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+    .field-group input:focus {
+      border-color: #fff;
+      background: rgba(255,255,255,0.06);
+      box-shadow: 0 0 12px rgba(255,255,255,0.1);
+    }
+
+    .modal-section-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin: 4px 0 -4px;
+    }
+
+    .modal-footer {
+      display: flex;
+      gap: 12px;
+      margin-top: 10px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .modal-footer .btn-primary {
+      flex: 2;
+      background: #fff;
+      color: #000;
+      font-weight: 700;
+      border: none;
+      border-radius: 9px;
+      padding: 12px 18px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .modal-footer .btn-primary:hover {
+      background: #e8e8e8;
+      box-shadow: 0 0 20px rgba(255,255,255,0.25);
+    }
+    .modal-footer .btn-cancel {
+      flex: 1;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.12);
+      color: var(--text-dim);
+      border-radius: 9px;
+      padding: 12px 18px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .modal-footer .btn-cancel:hover {
+      background: rgba(255,255,255,0.05);
+      color: #fff;
+      border-color: rgba(255,255,255,0.25);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-dim);
+      font-size: 14px;
+      background: rgba(255,255,255,0.02);
+      border: 1px dashed rgba(255,255,255,0.08);
+      border-radius: 14px;
+    }
+    .empty-state p { margin: 0 0 16px; }
+  </style>
 </head>
 <body>
   <div class="app-layout">
@@ -44,62 +448,83 @@
       </header>
 
       <div class="content">
-        <section class="card">
-          <h2>[CONFIG] Add / Configure Target</h2>
-          <form id="deviceForm" class="form-grid">
-            <input type="hidden" id="deviceId">
-            <div style="display:flex; flex-direction:column; gap:8px;">
-              <label for="deviceName" style="color:var(--text-dim); font-size:13px;">Target Identifier</label>
-              <input id="deviceName" required placeholder="e.g. Pixel 7 Lab / iPhone 14 Pro">
-            </div>
-            <div style="display:flex; flex-direction:column; gap:8px;">
-              <label for="deviceIp" style="color:var(--text-dim); font-size:13px;">Network IP Address</label>
-              <input id="deviceIp" required placeholder="e.g. 192.168.1.101">
-            </div>
-            <div style="display:flex; flex-direction:column; gap:8px;">
-              <label for="deviceType" style="color:var(--text-dim); font-size:13px;">Operating System</label>
-              <select id="deviceType">
-                <option value="android">Android Platform</option>
-                <option value="ios">Apple iOS Platform</option>
-              </select>
-            </div>
-            <div style="display:flex; flex-direction:column; gap:8px;">
-              <label for="deviceDescription" style="color:var(--text-dim); font-size:13px;">Description (Optional)</label>
-              <input id="deviceDescription" placeholder="e.g. Lab device 01">
-            </div>
-            <div style="display:flex; flex-direction:column; gap:8px;">
-              <label for="deviceSshId" style="color:var(--text-dim); font-size:13px;">SSH Username (Optional)</label>
-              <input id="deviceSshId" placeholder="e.g. root">
-            </div>
-            <div style="display:flex; flex-direction:column; gap:8px;">
-              <label for="deviceSshPass" style="color:var(--text-dim); font-size:13px;">SSH Password (Optional)</label>
-              <input id="deviceSshPass" type="password" placeholder="e.g. alpine">
-            </div>
-            <div class="form-actions">
-              <button type="submit" style="background:var(--cyan); color:#000; font-weight:700;">Save Target Configuration</button>
-            </div>
-          </form>
-        </section>
-
-        <section class="card">
-          <h2>[FLEET] Registered Fleet</h2>
-          <div id="deviceTableWrap" style="overflow-x:auto;"></div>
-        </section>
+        <div class="devices-header-row">
+          <div class="devices-header-title">
+            <span>Registered Fleet</span>
+            <span id="deviceCountPill" class="devices-count-pill">0</span>
+          </div>
+          <button id="openAddDeviceBtn" class="btn-add-primary">+ Add Device</button>
+        </div>
+        <div id="deviceGrid" class="device-grid"></div>
       </div>
     </main>
   </div>
 
-  <div id="toast"></div>
+  <!-- Add / Edit Device Modal -->
+  <div id="deviceModal" class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalTitle">Add Target Device</h3>
+        <button class="modal-close" id="closeModalBtn" title="Close">&#x2715;</button>
+      </div>
 
-  <!-- Global Live Debug Console Overlay -->
-  <div id="globalDebugOverlay" class="debug-overlay">
-    <div class="debug-header">
-      <span>SERVER_LOGS::LIVE</span>
-      <button id="toggleDebugBtn" class="sm-btn">x</button>
+      <form id="deviceForm" class="modal-form">
+        <input type="hidden" id="deviceId">
+        <input type="hidden" id="deviceType" value="android">
+
+        <!-- Platform Segmented Selector -->
+        <div class="platform-selector-group">
+          <label class="platform-selector-label">Target Platform</label>
+          <div class="platform-pill-grid">
+            <button type="button" class="platform-pill-btn active android" id="platformBtnAndroid" data-type="android">
+              <span>🤖</span> Android Platform
+            </button>
+            <button type="button" class="platform-pill-btn ios" id="platformBtnIos" data-type="ios">
+              <span>🍎</span> Apple iOS
+            </button>
+          </div>
+        </div>
+
+        <!-- Identification -->
+        <div class="modal-row">
+          <div class="field-group">
+            <label for="deviceName">Device Identifier / Model</label>
+            <input id="deviceName" required placeholder="e.g. POCO X3 / Pixel 7">
+          </div>
+          <div class="field-group">
+            <label for="deviceIp" id="deviceIpLabel">Network IP / USB Serial</label>
+            <input id="deviceIp" required placeholder="e.g. 192.168.1.101 or 131b62b1">
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label for="deviceDescription">Device Note / Description</label>
+          <input id="deviceDescription" placeholder="Optional lab notes (e.g. Rooted Magisk v26, Android 13)">
+        </div>
+
+        <!-- SSH Credentials Section -->
+        <div class="modal-section-title">SSH Remote Shell Credentials (Optional)</div>
+        <div class="modal-row">
+          <div class="field-group">
+            <label for="deviceSshId">SSH Username</label>
+            <input id="deviceSshId" placeholder="e.g. root / u0_a215">
+          </div>
+          <div class="field-group">
+            <label for="deviceSshPass">SSH Password</label>
+            <input id="deviceSshPass" type="password" placeholder="e.g. alpine / password">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" id="cancelModalBtn">Cancel</button>
+          <button type="submit" class="btn-primary" id="modalSubmitBtn">Save Device</button>
+        </div>
+      </form>
     </div>
-    <pre id="debugConsole" class="mono debug-console-global"></pre>
   </div>
-  <button id="openDebugBtn" class="floating-debug-btn">Live Logs</button>
+
+  <div id="toast"></div>
+  <pre id="debugConsole" class="mono" style="display:none;"></pre>
 
   <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
