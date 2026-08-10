@@ -1,4 +1,5 @@
 import os
+import queue
 import socket
 import subprocess
 import tempfile
@@ -517,8 +518,6 @@ def adb_shell_connect():
             bufsize=0,
             shell=True
         )
-        
-        import queue
         q = queue.Queue()
 
         def enqueue_output(out, queue_obj):
