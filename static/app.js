@@ -167,6 +167,13 @@ function attachSocketListeners() {
   });
 }
 
+function getPlatformIcon(type, size = 13) {
+  if (type === "ios") {
+    return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.62-.75 1.04-1.8 0.92-2.85-.9.04-1.99.6-2.63 1.35-.57.65-1.06 1.71-.93 2.73 1.01.08 2.02-.48 2.64-1.23"/></svg>`;
+  }
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="currentColor"><path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993.0001.5511-.4483.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993 0 .5511-.4482.9997-.9993.9997m11.4045-6.02l1.997-3.459c.125-.2164.051-.4972-.165-.6222-.216-.125-.497-.051-.622.165l-2.023 3.504C15.421 8.358 13.766 8 12 8s-3.421.358-5.068.909L4.909 5.405c-.125-.216-.406-.29-.622-.165-.216.125-.29.4058-.165.6222l1.997 3.459C2.688 11.171 0 14.887 0 19.25h24c0-4.363-2.688-8.079-6.1185-9.9286"/></svg>`;
+}
+
 async function renderDashboard() {
   const cards = document.getElementById("deviceCards");
   if (!cards) return;
@@ -176,31 +183,49 @@ async function renderDashboard() {
 
   const rerender = () => {
     cards.innerHTML = "";
-    devices
-      .filter((d) => filter === "all" || d.type === filter)
-      .forEach((device) => {
-        const card = document.createElement("div");
-        card.className = "device-card";
-        const iconClass = device.type === "android" ? "icon-android" : "icon-ios";
-        const typeChip = device.type === "android" ? "ANDROID" : "IOS";
-        card.innerHTML = `<div class="device-meta"><span class="device-icon ${iconClass}"></span><div><b>${device.name}</b> <span class="type-chip">${typeChip}</span><br><span class="mono"><span class="small-icon icon-device"></span>${device.ip}</span></div></div>`;
+    const filtered = devices.filter((d) => filter === "all" || d.type === filter);
+    if (!filtered.length) {
+      cards.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;"><p>No matching devices found.</p></div>`;
+      return;
+    }
+    filtered.forEach((device) => {
+      const card = document.createElement("div");
+      const cardClass = device.type === "ios" ? "ios" : "android";
+      const badgeClass = device.type === "ios" ? "badge-ios" : "badge-android";
+      const badgeLabel = device.type === "ios" ? "iOS" : "Android";
+      const isUsbSerial = !device.ip.includes(".") && !device.ip.includes(":");
+      const ipLabelText = isUsbSerial ? "USB SERIAL" : "IP ADDRESS";
+      const desc = device.description ? `<div class="device-card-desc">${device.description}</div>` : "";
 
-        const actions = document.createElement("div");
-        actions.className = "inline-actions";
-        if (device.type === "android") {
-          actions.appendChild(actionButton("Connect", () => connectDevice(device)));
-          actions.appendChild(actionButton("Install App (APK)", () => installAppToDevice(device)));
-          actions.appendChild(actionButton("Start Frida", () => socket.emit("start_frida_server", { device_id: device.id })));
-          actions.appendChild(actionButton("Upload File", () => uploadToDevice(device)));
-          actions.appendChild(actionButton("List Apps", () => { window.location.href = `/apps?device=${device.id}`; }));
-        } else {
-          actions.appendChild(actionButton("File Upload", () => renderIframe(card, `http://${device.ip}:11111`)));
-          actions.appendChild(actionButton("Install IPA", () => installIpaToDevice(device)));
-          actions.appendChild(actionButton("List Apps", () => { window.location.href = `/apps?device=${device.id}`; }));
-        }
-        card.appendChild(actions);
-        cards.appendChild(card);
-      });
+      card.className = `device-card ${cardClass}`;
+      card.innerHTML = `
+        <div class="device-card-top">
+          <div class="device-card-name">${device.name}</div>
+          <span class="device-badge ${badgeClass}">${getPlatformIcon(device.type, 13)} ${badgeLabel}</span>
+        </div>
+        <div class="device-card-ip-wrap">
+          <span class="device-card-ip-label">${ipLabelText}</span>
+          <span class="device-card-ip">${device.ip}</span>
+        </div>
+        ${desc}
+      `;
+
+      const actions = document.createElement("div");
+      actions.className = "inline-actions";
+      if (device.type === "android") {
+        actions.appendChild(actionButton("Connect", () => connectDevice(device)));
+        actions.appendChild(actionButton("Install APK", () => installAppToDevice(device)));
+        actions.appendChild(actionButton("Start Frida", () => socket.emit("start_frida_server", { device_id: device.id })));
+        actions.appendChild(actionButton("Upload File", () => uploadToDevice(device)));
+        actions.appendChild(actionButton("List Apps", () => { window.location.href = `/apps?device=${device.id}`; }));
+      } else {
+        actions.appendChild(actionButton("File Upload", () => renderIframe(card, `http://${device.ip}:11111`)));
+        actions.appendChild(actionButton("Install IPA", () => installIpaToDevice(device)));
+        actions.appendChild(actionButton("List Apps", () => { window.location.href = `/apps?device=${device.id}`; }));
+      }
+      card.appendChild(actions);
+      cards.appendChild(card);
+    });
   };
 
   const radios = document.querySelectorAll('input[name="osFilter"]');
@@ -535,28 +560,36 @@ async function renderDevicesPage() {
   const platformBtnIos = document.getElementById("platformBtnIos");
 
   const setPlatform = (platform) => {
-    typeField.value = platform;
-    if (platform === "ios") {
-      if (platformBtnAndroid) platformBtnAndroid.classList.remove("active");
-      if (platformBtnIos) platformBtnIos.classList.add("active");
+    const p = (platform === "ios") ? "ios" : "android";
+    typeField.value = p;
+    const isIos = (p === "ios");
+
+    if (platformBtnAndroid) {
+      platformBtnAndroid.classList.toggle("active", !isIos);
+    }
+    if (platformBtnIos) {
+      platformBtnIos.classList.toggle("active", isIos);
+    }
+
+    if (isIos) {
       if (ipLabel) ipLabel.textContent = "Network IP Address";
       if (nameField) nameField.placeholder = "e.g. iPhone 14 Pro (iOS 16.5)";
       if (ipField) ipField.placeholder = "e.g. 192.168.1.120";
     } else {
-      if (platformBtnIos) platformBtnIos.classList.remove("active");
-      if (platformBtnAndroid) platformBtnAndroid.classList.add("active");
       if (ipLabel) ipLabel.textContent = "Network IP / USB Serial";
       if (nameField) nameField.placeholder = "e.g. POCO X3 / Pixel 7";
       if (ipField) ipField.placeholder = "e.g. 192.168.1.101 or 131b62b1";
     }
   };
 
-  if (platformBtnAndroid) {
-    platformBtnAndroid.onclick = () => setPlatform("android");
-  }
-  if (platformBtnIos) {
-    platformBtnIos.onclick = () => setPlatform("ios");
-  }
+  document.querySelectorAll(".platform-pill-btn").forEach((btn) => {
+    btn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const chosen = btn.getAttribute("data-type") || "android";
+      setPlatform(chosen);
+    };
+  });
 
   const openModal = (editDevice) => {
     form.reset();
@@ -598,7 +631,6 @@ async function renderDevicesPage() {
     grid.innerHTML = devices.map((d) => {
       const badgeClass = d.type === "ios" ? "badge-ios" : "badge-android";
       const cardClass = d.type === "ios" ? "ios" : "android";
-      const badgeIcon = d.type === "ios" ? "🍎" : "🤖";
       const badgeLabel = d.type === "ios" ? "iOS" : "Android";
       const desc = d.description ? `<div class="device-card-desc">${d.description}</div>` : `<div class="device-card-desc" style="opacity:0.4;font-style:italic;">No description provided</div>`;
       const isUsbSerial = !d.ip.includes(".") && !d.ip.includes(":");
@@ -607,7 +639,7 @@ async function renderDevicesPage() {
       return `<div class="device-card ${cardClass}">
         <div class="device-card-top">
           <div class="device-card-name">${d.name}</div>
-          <span class="device-badge ${badgeClass}">${badgeIcon} ${badgeLabel}</span>
+          <span class="device-badge ${badgeClass}">${getPlatformIcon(d.type, 13)} ${badgeLabel}</span>
         </div>
         <div class="device-card-ip-wrap">
           <span class="device-card-ip-label">${ipLabelText}</span>

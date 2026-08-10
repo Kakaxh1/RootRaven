@@ -10,7 +10,6 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <style>
-    /* ── Header & Toolbar ── */
     .devices-header-row {
       display: flex;
       align-items: center;
@@ -28,8 +27,8 @@
       gap: 8px;
     }
     .devices-count-pill {
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
       padding: 2px 8px;
       border-radius: 12px;
       font-size: 11px;
@@ -48,366 +47,23 @@
       font-size: 14px;
       cursor: pointer;
       transition: all 0.2s ease;
-      box-shadow: 0 0 20px rgba(255,255,255,0.15);
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.15);
     }
     .btn-add-primary:hover {
       transform: translateY(-1px);
-      box-shadow: 0 0 25px rgba(255,255,255,0.3);
+      box-shadow: 0 0 25px rgba(255, 255, 255, 0.3);
       background: #f0f0f0 !important;
     }
-
-    /* ── Device Cards Grid ── */
-    .device-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 20px;
-    }
-    .device-card {
-      background: #080808;
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 14px;
-      padding: 22px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      position: relative;
-      overflow: hidden;
-      transition: all 0.25s ease;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-    }
-    .device-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 3px;
-      opacity: 0.8;
-      transition: opacity 0.25s;
-    }
-    .device-card.android::before {
-      background: linear-gradient(90deg, #3ddc84, #00f0ff);
-    }
-    .device-card.ios::before {
-      background: linear-gradient(90deg, #007aff, #a855f7);
-    }
-    .device-card:hover {
-      border-color: rgba(255,255,255,0.2);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 30px rgba(0,0,0,0.7);
-    }
-    .device-card:hover::before {
-      opacity: 1;
-    }
-    .device-card-top {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 12px;
-    }
-    .device-card-name {
-      font-size: 16px;
-      font-weight: 600;
-      color: #fff;
-      line-height: 1.3;
-    }
-    .device-badge {
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 0.8px;
-      text-transform: uppercase;
-      padding: 4px 10px;
-      border-radius: 20px;
-      flex-shrink: 0;
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-    }
-    .badge-android {
-      background: rgba(61,220,132,0.12);
-      color: #3ddc84;
-      border: 1px solid rgba(61,220,132,0.3);
-    }
-    .badge-ios {
-      background: rgba(0,122,255,0.12);
-      color: #5b9cf6;
-      border: 1px solid rgba(0,122,255,0.3);
-    }
-    .device-card-ip-wrap {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.05);
-      border-radius: 8px;
-      padding: 8px 12px;
-    }
-    .device-card-ip-label {
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      color: var(--text-dim);
-      font-weight: 600;
-    }
-    .device-card-ip {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 13px;
-      color: #fff;
-      font-weight: 600;
-    }
-    .device-card-desc {
-      font-size: 13px;
-      color: var(--text-dim);
-      line-height: 1.5;
-      min-height: 20px;
-    }
-    .device-card-actions {
-      display: flex;
-      gap: 10px;
-      margin-top: 6px;
-      padding-top: 14px;
-      border-top: 1px solid rgba(255,255,255,0.06);
-    }
-    .device-card-actions button {
-      flex: 1;
-      padding: 8px 12px;
-      font-size: 12px;
-      font-weight: 600;
-      border-radius: 8px;
-      transition: all 0.2s;
-    }
-    .btn-edit {
-      border: 1px solid rgba(255,255,255,0.2) !important;
-      color: #fff !important;
-      background: rgba(255,255,255,0.04) !important;
-    }
-    .btn-edit:hover {
-      background: rgba(255,255,255,0.1) !important;
-      border-color: #fff !important;
-    }
-    .btn-delete {
-      border: 1px solid rgba(255,59,48,0.3) !important;
-      color: #ff6b6b !important;
-      background: rgba(255,59,48,0.04) !important;
-    }
-    .btn-delete:hover {
-      background: rgba(255,59,48,0.15) !important;
-      border-color: #ff3b30 !important;
-    }
-
-    /* ── Modal Design & Flow ── */
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.8);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      opacity: 0;
+    .platform-pill-btn * {
       pointer-events: none;
-      transition: opacity 0.25s ease;
-      padding: 20px;
     }
-    .modal-backdrop.open {
-      opacity: 1;
-      pointer-events: all;
-    }
-    .modal {
-      background: #0d0d0f;
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 18px;
-      padding: 30px;
-      width: 100%;
-      max-width: 540px;
-      box-shadow: 0 25px 80px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.05);
-      transform: scale(0.96) translateY(10px);
-      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .modal-backdrop.open .modal {
-      transform: scale(1) translateY(0);
-    }
-    .modal-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 22px;
-      padding-bottom: 14px;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-    }
-    .modal-header h3 {
-      font-size: 18px;
-      font-weight: 700;
-      color: #fff;
-      margin: 0;
-      letter-spacing: 0.3px;
-    }
-    .modal-close {
-      background: rgba(255,255,255,0.05) !important;
-      border: 1px solid rgba(255,255,255,0.1) !important;
-      color: var(--text-dim) !important;
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      cursor: pointer;
-      padding: 0 !important;
-      transition: all 0.2s;
-    }
-    .modal-close:hover {
-      color: #fff !important;
-      background: rgba(255,255,255,0.12) !important;
-    }
-
-    .modal-form {
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
-    }
-
-    /* Platform Segmented Switcher */
-    .platform-selector-group {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .platform-selector-label {
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      color: var(--text-dim);
-    }
-    .platform-pill-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-    .platform-pill-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 12px 14px;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 10px;
-      color: var(--text-dim);
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    .platform-pill-btn:hover {
-      background: rgba(255,255,255,0.07);
-      color: #fff;
-    }
-    .platform-pill-btn.active.android {
-      background: rgba(61,220,132,0.12);
-      border-color: #3ddc84;
-      color: #3ddc84;
-      box-shadow: 0 0 15px rgba(61,220,132,0.15);
-    }
-    .platform-pill-btn.active.ios {
-      background: rgba(0,122,255,0.14);
-      border-color: #007aff;
-      color: #5b9cf6;
-      box-shadow: 0 0 15px rgba(0,122,255,0.2);
-    }
-
-    .modal-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-    .field-group {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .field-group label {
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.8px;
-      text-transform: uppercase;
-      color: var(--text-dim);
-    }
-    .field-group input {
-      width: 100%;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 9px;
-      padding: 11px 14px;
-      color: #fff;
-      font-size: 13px;
-      outline: none;
-      transition: all 0.2s ease;
-    }
-    .field-group input:focus {
-      border-color: #fff;
-      background: rgba(255,255,255,0.06);
-      box-shadow: 0 0 12px rgba(255,255,255,0.1);
-    }
-
-    .modal-section-title {
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      color: var(--text-dim);
-      margin: 4px 0 -4px;
-    }
-
-    .modal-footer {
-      display: flex;
-      gap: 12px;
-      margin-top: 10px;
-      padding-top: 16px;
-      border-top: 1px solid rgba(255,255,255,0.08);
-    }
-    .modal-footer .btn-primary {
-      flex: 2;
-      background: #fff;
-      color: #000;
-      font-weight: 700;
-      border: none;
-      border-radius: 9px;
-      padding: 12px 18px;
-      font-size: 14px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .modal-footer .btn-primary:hover {
-      background: #e8e8e8;
-      box-shadow: 0 0 20px rgba(255,255,255,0.25);
-    }
-    .modal-footer .btn-cancel {
-      flex: 1;
-      background: transparent;
-      border: 1px solid rgba(255,255,255,0.12);
-      color: var(--text-dim);
-      border-radius: 9px;
-      padding: 12px 18px;
-      font-size: 14px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .modal-footer .btn-cancel:hover {
-      background: rgba(255,255,255,0.05);
-      color: #fff;
-      border-color: rgba(255,255,255,0.25);
-    }
-
     .empty-state {
       text-align: center;
       padding: 60px 20px;
       color: var(--text-dim);
       font-size: 14px;
-      background: rgba(255,255,255,0.02);
-      border: 1px dashed rgba(255,255,255,0.08);
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px dashed rgba(255, 255, 255, 0.08);
       border-radius: 14px;
     }
     .empty-state p { margin: 0 0 16px; }
@@ -465,7 +121,7 @@
     <div class="modal">
       <div class="modal-header">
         <h3 id="modalTitle">Add Target Device</h3>
-        <button class="modal-close" id="closeModalBtn" title="Close">&#x2715;</button>
+        <button type="button" class="modal-close" id="closeModalBtn" title="Close">&#x2715;</button>
       </div>
 
       <form id="deviceForm" class="modal-form">
@@ -477,10 +133,12 @@
           <label class="platform-selector-label">Target Platform</label>
           <div class="platform-pill-grid">
             <button type="button" class="platform-pill-btn active android" id="platformBtnAndroid" data-type="android">
-              <span>🤖</span> Android Platform
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993.0001.5511-.4483.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993 0 .5511-.4482.9997-.9993.9997m11.4045-6.02l1.997-3.459c.125-.2164.051-.4972-.165-.6222-.216-.125-.497-.051-.622.165l-2.023 3.504C15.421 8.358 13.766 8 12 8s-3.421.358-5.068.909L4.909 5.405c-.125-.216-.406-.29-.622-.165-.216.125-.29.4058-.165.6222l1.997 3.459C2.688 11.171 0 14.887 0 19.25h24c0-4.363-2.688-8.079-6.1185-9.9286"/></svg>
+              <span>Android Platform</span>
             </button>
             <button type="button" class="platform-pill-btn ios" id="platformBtnIos" data-type="ios">
-              <span>🍎</span> Apple iOS
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.62-.75 1.04-1.8 0.92-2.85-.9.04-1.99.6-2.63 1.35-.57.65-1.06 1.71-.93 2.73 1.01.08 2.02-.48 2.64-1.23"/></svg>
+              <span>Apple iOS</span>
             </button>
           </div>
         </div>
