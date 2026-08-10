@@ -174,6 +174,46 @@ function getPlatformIcon(type, size = 13) {
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="currentColor"><path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993.0001.5511-.4483.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993 0 .5511-.4482.9997-.9993.9997m11.4045-6.02l1.997-3.459c.125-.2164.051-.4972-.165-.6222-.216-.125-.497-.051-.622.165l-2.023 3.504C15.421 8.358 13.766 8 12 8s-3.421.358-5.068.909L4.909 5.405c-.125-.216-.406-.29-.622-.165-.216.125-.29.4058-.165.6222l1.997 3.459C2.688 11.171 0 14.887 0 19.25h24c0-4.363-2.688-8.079-6.1185-9.9286"/></svg>`;
 }
 
+function setupLogsPanel(devices) {
+  const logcatDeviceSelect = document.getElementById("logcatDeviceSelect");
+  const logcatFilterText = document.getElementById("logcatFilterText");
+  const startLogcatBtn = document.getElementById("startLogcatBtn");
+  const stopLogcatBtn = document.getElementById("stopLogcatBtn");
+  const clearLogcatBtn = document.getElementById("clearLogcatBtn");
+  const logcatOutput = document.getElementById("logcatOutput");
+
+  if (logcatDeviceSelect && logcatFilterText && startLogcatBtn && stopLogcatBtn && clearLogcatBtn && logcatOutput) {
+    const androidDevices = devices.filter(d => d.type === "android");
+    logcatDeviceSelect.innerHTML = androidDevices.length
+      ? androidDevices.map(d => `<option value="${d.id}">${d.name} (${d.ip})</option>`).join("")
+      : "<option value=''>No Android Devices</option>";
+
+    startLogcatBtn.onclick = () => {
+      if (!logcatDeviceSelect.value) {
+        toast("Select an Android device first");
+        return;
+      }
+      logcatOutput.textContent += "\n[SYSTEM] Starting logcat stream...\n";
+      socket.emit("start_logcat", {
+        device_id: logcatDeviceSelect.value,
+        filter_text: logcatFilterText.value
+      });
+      toast("Logcat Started");
+    };
+
+    stopLogcatBtn.onclick = () => {
+      if (!logcatDeviceSelect.value) return;
+      socket.emit("stop_logcat", { device_id: logcatDeviceSelect.value });
+      logcatOutput.textContent += "\n[SYSTEM] Logcat stream stopped.\n";
+      toast("Logcat Stopped");
+    };
+
+    clearLogcatBtn.onclick = () => {
+      logcatOutput.textContent = "";
+    };
+  }
+}
+
 async function renderDashboard() {
   const cards = document.getElementById("deviceCards");
   if (!cards) return;
@@ -388,44 +428,7 @@ async function renderDashboard() {
 
 
 
-  // --- Logcat Streamer binding ---
-  const logcatDeviceSelect = document.getElementById("logcatDeviceSelect");
-  const logcatFilterText = document.getElementById("logcatFilterText");
-  const startLogcatBtn = document.getElementById("startLogcatBtn");
-  const stopLogcatBtn = document.getElementById("stopLogcatBtn");
-  const clearLogcatBtn = document.getElementById("clearLogcatBtn");
-  const logcatOutput = document.getElementById("logcatOutput");
-
-  if (logcatDeviceSelect && logcatFilterText && startLogcatBtn && stopLogcatBtn && clearLogcatBtn && logcatOutput) {
-    const androidDevices = devices.filter(d => d.type === "android");
-    logcatDeviceSelect.innerHTML = androidDevices.length
-      ? androidDevices.map(d => `<option value="${d.id}">${d.name} (${d.ip})</option>`).join("")
-      : "<option value=''>No Android Devices</option>";
-
-    startLogcatBtn.onclick = () => {
-      if (!logcatDeviceSelect.value) {
-        toast("Select an Android device first");
-        return;
-      }
-      logcatOutput.textContent += "\n[SYSTEM] Starting logcat stream...\n";
-      socket.emit("start_logcat", {
-        device_id: logcatDeviceSelect.value,
-        filter_text: logcatFilterText.value
-      });
-      toast("Logcat Started");
-    };
-
-    stopLogcatBtn.onclick = () => {
-      if (!logcatDeviceSelect.value) return;
-      socket.emit("stop_logcat", { device_id: logcatDeviceSelect.value });
-      logcatOutput.textContent += "\n[SYSTEM] Logcat stream stopped.\n";
-      toast("Logcat Stopped");
-    };
-
-    clearLogcatBtn.onclick = () => {
-      logcatOutput.textContent = "";
-    };
-  }
+  setupLogsPanel(devices);
 
   // --- Network ADB Shell Console binding ---
   const adbShellIp = document.getElementById("adbShellIp");
@@ -711,6 +714,8 @@ async function renderAppsPage() {
     return;
   }
   select.innerHTML = devices.map((d) => `<option value="${d.id}">${d.name} (${d.type})</option>`).join("");
+
+  setupLogsPanel(devices);
 
   const params = new URLSearchParams(window.location.search);
   const selectedFromQuery = params.get("device");
