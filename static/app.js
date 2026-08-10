@@ -765,6 +765,7 @@ async function renderDevicesPage() {
         </div>
         ${desc}
         <div class="device-card-actions">
+          <button class="btn-edit" style="border-color:var(--cyan); color:var(--cyan);" onclick="window.__showDeviceHealth('${d.id}')">Health</button>
           <button class="btn-edit" onclick="window.__editDevice('${d.id}')">Edit</button>
           <button class="btn-delete" onclick="window.__deleteDevice('${d.id}')">Delete</button>
         </div>
