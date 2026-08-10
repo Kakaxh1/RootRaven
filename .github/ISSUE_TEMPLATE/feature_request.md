@@ -1,20 +1,27 @@
 ---
 name: Feature request
-about: Suggest an idea for RootRaven
+about: Suggest a new module or improvement to RootRaven
 title: '[FEATURE] '
 labels: enhancement
 assignees: Kakaxh1
-
 ---
 
-**Is your feature request related to a problem? Please describe.**
-A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+**Summary**
 
-**Describe the solution you'd like**
-A clear and concise description of what you want to happen.
+A short summary of the feature you are requesting.
 
-**Describe alternatives you've considered**
-A clear and concise description of any alternative solutions or features you've considered.
+**Problem it solves**
+
+What existing limitation or workflow gap does this address?
+
+**Proposed solution**
+
+Describe how you envision the feature working. Include UI sketches, API design, or pseudocode if helpful.
+
+**Alternatives considered**
+
+Any other approaches you considered and why you prefer this one.
 
 **Additional context**
-Add any other context or screenshots about the feature request here.
+
+Any relevant tools, references, or prior art that inspired the request.

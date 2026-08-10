@@ -1,29 +1,38 @@
 ---
 name: Bug report
-about: Create a report to help us improve RootRaven
+about: Report a reproducible bug in RootRaven
 title: '[BUG] '
 labels: bug
 assignees: Kakaxh1
-
 ---
 
 **Describe the bug**
+
 A clear and concise description of what the bug is.
 
-**To Reproduce**
-Steps to reproduce the behavior:
+**Steps to reproduce**
+
 1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+2. Click on '...'
+3. See error
 
 **Expected behavior**
-A clear and concise description of what you expected to happen.
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+What you expected to happen.
 
-**Environment (please complete the following information):**
- - OS: [e.g. Windows, Ubuntu]
- - Python version [e.g. 3.11]
- - Device Target: [e.g. Android 13, iOS 16]
+**Actual behavior**
+
+What actually happened. Paste any error output, console logs, or screenshots.
+
+**Environment**
+
+* OS: (e.g. Windows 11, Ubuntu 22.04)
+* Python version: (e.g. 3.10.6)
+* ADB version: (run `adb version`)
+* Browser: (e.g. Chrome 125)
+
+**Device info (if applicable)**
+
+* Device type: Android / iOS
+* Android/iOS version:
+* Connection type: USB / Network ADB

@@ -1,19 +1,38 @@
-## Description
+## Summary
 
-Please include a summary of the change and which issue is fixed. Please also include relevant motivation and context. 
-
-Fixes # (issue)
+Briefly describe what this pull request changes and why.
 
 ## Type of change
 
-- [ ] Bug fix (non-breaking change which fixes an issue)
-- [ ] New feature (non-breaking change which adds functionality)
-- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
-- [ ] This change requires a documentation update
+* [ ] Bug fix
+* [ ] New feature
+* [ ] Documentation update
+* [ ] Refactor / cleanup
+* [ ] Other (describe below)
+
+## Changes made
+
+List the specific files and logic changed:
+
+* 
+* 
+
+## How to test
+
+Step by step instructions to verify this change works correctly:
+
+1. 
+2. 
+3. 
 
 ## Checklist
 
-- [ ] My code follows the RootRaven style guidelines.
-- [ ] I have performed a self-review of my own code.
-- [ ] I have commented my code, particularly in hard-to-understand areas.
-- [ ] My changes generate no new warnings inside the floating Live Logs console.
+* [ ] The Flask server starts without errors
+* [ ] Tested with a real Android or iOS device (if applicable)
+* [ ] No JS errors in the browser console
+* [ ] Documentation updated if a user-facing feature was added or removed
+* [ ] Coding style follows the guidelines in CONTRIBUTING.md
+
+## Additional notes
+
+Any known limitations, follow-up tasks, or context reviewers should know about.
