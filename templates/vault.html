@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Evidence Vault | RootRaven</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">R</div>
+        <h2>RootRaven</h2>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="/" class="nav-item">
+          <span class="nav-icon">/</span>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        <a href="/devices" class="nav-item">
+          <span class="nav-icon">></span>
+          <span class="nav-label">Devices</span>
+        </a>
+        <a href="/apps" class="nav-item">
+          <span class="nav-icon">#</span>
+          <span class="nav-label">App Listing</span>
+        </a>
+        <a href="/vault" class="nav-item active">
+          <span class="nav-icon">*</span>
+          <span class="nav-label">Evidence Vault</span>
+        </a>
+        <a href="/masvs" class="nav-item">
+          <span class="nav-icon">%</span>
+          <span class="nav-label">MASVS Checklist</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div style="margin-top:12px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.05); font-size:14px; color:#aaa; letter-spacing:0.5px;">
+          Developed by<br>
+          <span style="display:block; margin-top:8px; font-size:20px; font-weight:700; color:#fff; text-shadow: 0 0 12px rgba(255,255,255,0.8); font-family:'JetBrains Mono', monospace;">Kkaxh1</span>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="top-header">
+        <h1>Evidence Vault</h1>
+        <div style="display:flex; gap:10px;">
+          <a href="/api/vault/export" class="btn-primary" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px; font-size:13px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <span>Export Markdown</span>
+          </a>
+          <button id="addVaultItemBtn" type="button" style="background:#fff; color:#000; font-weight:700;">+ Add Evidence</button>
+        </div>
+      </header>
+
+      <div class="content" style="max-width: 1200px;">
+        <!-- Filters Bar -->
+        <section class="card" style="padding:16px 20px;">
+          <div style="display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
+            <input id="vaultSearchInput" placeholder="Search evidence, tags, or content..." style="flex:2; min-width:240px;" />
+            <select id="vaultCategoryFilter" style="flex:1; min-width:180px;">
+              <option value="">All Categories</option>
+              <option value="Credential">Credentials & Accounts</option>
+              <option value="Token">API Keys & Tokens</option>
+              <option value="Log">Captured Logs & Payloads</option>
+              <option value="Command">Command Snapshots</option>
+              <option value="Secret">SharedPreferences Secrets</option>
+              <option value="General">General Notes</option>
+            </select>
+          </div>
+        </section>
+
+        <!-- Evidence Grid -->
+        <div id="vaultGrid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap:20px; margin-top:20px;"></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add Evidence Modal -->
+  <div id="vaultModal" class="modal-backdrop">
+    <div class="modal" style="max-width: 620px;">
+      <div class="modal-header">
+        <h3 id="vaultModalTitle">Store Evidence Finding</h3>
+        <button type="button" class="modal-close" id="closeVaultModalBtn" title="Close">&#x2715;</button>
+      </div>
+
+      <form id="vaultForm" class="modal-form">
+        <div class="field-group">
+          <label for="vaultTitle">Finding Title</label>
+          <input id="vaultTitle" required placeholder="e.g. Admin JWT Token in SharedPreferences" />
+        </div>
+
+        <div class="modal-row">
+          <div class="field-group">
+            <label for="vaultCategory">Category</label>
+            <select id="vaultCategory" style="padding:11px 14px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:9px; color:#fff;">
+              <option value="Credential">Credential</option>
+              <option value="Token">API Token / Key</option>
+              <option value="Secret">Extracted Secret</option>
+              <option value="Log">Captured Log</option>
+              <option value="Command">Command Execution</option>
+              <option value="General">General Note</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label for="vaultPackage">Target Package</label>
+            <input id="vaultPackage" placeholder="e.g. com.reliance.businesseasy2" />
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label for="vaultTags">Tags (Comma-separated)</label>
+          <input id="vaultTags" placeholder="e.g. auth, jwt, high-risk" />
+        </div>
+
+        <div class="field-group">
+          <label for="vaultContent">Evidence Data / Payload / Output</label>
+          <textarea id="vaultContent" required style="width:100%; height:180px; font-family:'JetBrains Mono', monospace; font-size:12px; background:#000; color:#00f0ff; border:1px solid rgba(255,255,255,0.1); border-radius:9px; padding:12px; box-sizing:border-box; resize:vertical; line-height:1.5; outline:none;" placeholder="// Paste captured token, credentials, or log payload..."></textarea>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" id="cancelVaultModalBtn">Cancel</button>
+          <button type="submit" class="btn-primary">Store Evidence</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

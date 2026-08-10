@@ -123,3 +123,64 @@ class StaticScanner:
             "vulnerabilities": vulnerabilities,
             "summary": summary,
         }
+
+    def scan_shared_preferences(self, package_name, device):
+        target_ip = device.get("ip", "") if isinstance(device, dict) else ""
+        adb_prefix = f"adb -s {target_ip}" if target_ip else "adb"
+
+        # List shared_prefs files
+        ok, files_out = self._run_cmd(f"{adb_prefix} shell su -c 'ls -1 /data/data/{package_name}/shared_prefs/'")
+        if not ok or not files_out or "No such file" in files_out:
+            # Try without su
+            ok, files_out = self._run_cmd(f"{adb_prefix} shell ls -1 /data/data/{package_name}/shared_prefs/")
+
+        if not ok or not files_out or "No such file" in files_out:
+            return {
+                "status": "info",
+                "message": "No SharedPreferences directory found or permissions denied (requires root/debuggable)",
+                "findings": [],
+            }
+
+        files = [f.strip() for f in files_out.splitlines() if f.strip().endswith(".xml")]
+        findings = []
+
+        secret_patterns = [
+            ("JWT / Bearer Token", r"eyJ[a-zA-Z0-9_\-]{10,}\.[a-zA-Z0-9_\-]{10,}\.[a-zA-Z0-9_\-]{10,}", "HIGH"),
+            ("API Key / Secret", r"(?i)(?:api_?key|secret|token|password|auth_?token|client_?secret)[\"'\s:=]+([^\"'<>\s]{6,})", "HIGH"),
+            ("Password / Credential", r"(?i)<string\s+name=[\"'](?:pass|password|user_pass|pwd|auth)[\"']>([^<]+)</string>", "HIGH"),
+            ("AWS Access Key", r"AKIA[0-9A-Z]{16}", "CRITICAL"),
+            ("Firebase / Google API Key", r"AIza[0-9A-Za-z\-_]{35}", "MEDIUM"),
+            ("Email Address (PII)", r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", "LOW"),
+            ("Session Identifier", r"(?i)(?:session_?id|sid|user_?id)[\"'\s:=]+([^\"'<>\s]{6,})", "MEDIUM"),
+        ]
+
+        for xml_file in files:
+            cat_cmd = f"{adb_prefix} shell su -c 'cat /data/data/{package_name}/shared_prefs/{xml_file}'"
+            cat_ok, content = self._run_cmd(cat_cmd)
+            if not cat_ok or not content:
+                cat_ok, content = self._run_cmd(f"{adb_prefix} shell cat /data/data/{package_name}/shared_prefs/{xml_file}")
+
+            if not cat_ok or not content:
+                continue
+
+            for title, pattern, severity in secret_patterns:
+                matches = re.findall(pattern, content)
+                for m in matches:
+                    val = m if isinstance(m, str) else m[0]
+                    # Mask sensitive value for safe preview
+                    masked_val = val[:4] + "*" * min(len(val) - 8, 12) + val[-4:] if len(val) > 8 else "****"
+                    findings.append({
+                        "file": xml_file,
+                        "type": title,
+                        "severity": severity,
+                        "masked_value": masked_val,
+                        "raw_value": val,
+                    })
+
+        return {
+            "status": "success",
+            "package": package_name,
+            "scanned_files_count": len(files),
+            "files": files,
+            "findings": findings,
+        }

@@ -19,6 +19,9 @@ from utils.device_manager import DeviceManager
 from utils.frida_manager import FridaManager
 from utils.scanner import StaticScanner
 from utils.fuzzer import IntentFuzzer
+from utils.recon import AppRecon
+from utils.vault_manager import VaultManager
+from utils.masvs_manager import MasvsManager
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "mobile-security-testing-tool"
@@ -44,6 +47,9 @@ frida_manager = FridaManager()
 adb_helper = ADBHelper()
 static_scanner = StaticScanner()
 intent_fuzzer = IntentFuzzer()
+app_recon = AppRecon()
+vault_manager = VaultManager()
+masvs_manager = MasvsManager()
 SSH_SESSIONS = {}
 ADB_SESSIONS = {}
 RUNNING_FRIDA_PROCESSES = {}
@@ -100,6 +106,16 @@ def devices_page():
 @app.route("/apps")
 def apps_page():
     return render_template("apps.html")
+
+
+@app.route("/vault")
+def vault_page():
+    return render_template("vault.html")
+
+
+@app.route("/masvs")
+def masvs_page():
+    return render_template("masvs.html")
 
 
 @app.route("/api/devices", methods=["GET"])
@@ -896,18 +912,95 @@ def api_fuzzer_deeplinks():
     return jsonify(res)
 
 
-@app.route("/api/fuzzer/launch-intent", methods=["POST"])
-def api_fuzzer_launch_intent():
+# ─────────────────────────────────────────────────────────────
+# Device Health & Recon API
+# ─────────────────────────────────────────────────────────────
+
+@app.route("/api/device/health/<device_id>", methods=["GET"])
+def api_device_health(device_id):
+    device = device_manager.get_device(device_id)
+    if not device:
+        return jsonify({"status": "error", "message": "Device not found"}), 404
+    res = device_manager.get_device_health(device)
+    return jsonify(res)
+
+
+@app.route("/api/recon/package", methods=["POST"])
+def api_recon_package():
     payload = request.json or {}
-    uri = (payload.get("uri") or "").strip()
-    action = (payload.get("action") or "").strip()
-    extra_key = (payload.get("extra_key") or "").strip()
-    extra_val = (payload.get("extra_val") or "").strip()
     package_name = (payload.get("package_name") or "").strip()
     device_id = payload.get("device_id")
-    device = device_manager.get_device(device_id) if device_id else None
-    res = intent_fuzzer.launch_intent(uri, action, extra_key, extra_val, package_name, device)
+    if not package_name or not device_id:
+        return jsonify({"status": "error", "message": "Package name and device ID are required"}), 400
+    device = device_manager.get_device(device_id)
+    if not device:
+        return jsonify({"status": "error", "message": "Device not found"}), 404
+    res = app_recon.get_recon_intel(package_name, device)
     return jsonify(res)
+
+
+@app.route("/api/scanner/shared-prefs", methods=["POST"])
+def api_scan_shared_prefs():
+    payload = request.json or {}
+    package_name = (payload.get("package_name") or "").strip()
+    device_id = payload.get("device_id")
+    if not package_name or not device_id:
+        return jsonify({"status": "error", "message": "Package name and device ID are required"}), 400
+    device = device_manager.get_device(device_id)
+    if not device:
+        return jsonify({"status": "error", "message": "Device not found"}), 404
+    res = static_scanner.scan_shared_preferences(package_name, device)
+    return jsonify(res)
+
+
+# ─────────────────────────────────────────────────────────────
+# Evidence Vault API
+# ─────────────────────────────────────────────────────────────
+
+@app.route("/api/vault", methods=["GET", "POST"])
+def api_vault_items():
+    if request.method == "GET":
+        tag = request.args.get("tag")
+        category = request.args.get("category")
+        return jsonify({"status": "success", "items": vault_manager.get_all(tag=tag, category=category)})
+    payload = request.json or {}
+    res = vault_manager.add_item(payload)
+    return jsonify(res)
+
+
+@app.route("/api/vault/<item_id>", methods=["DELETE"])
+def api_vault_delete(item_id):
+    res = vault_manager.delete_item(item_id)
+    return jsonify(res)
+
+
+@app.route("/api/vault/export", methods=["GET"])
+def api_vault_export():
+    md = vault_manager.export_markdown()
+    return md, 200, {"Content-Type": "text/markdown; charset=utf-8", "Content-Disposition": "attachment; filename=rootraven_vault_export.md"}
+
+
+# ─────────────────────────────────────────────────────────────
+# OWASP MASVS Checklist API
+# ─────────────────────────────────────────────────────────────
+
+@app.route("/api/masvs/checklist", methods=["GET", "POST"])
+def api_masvs_checklist():
+    if request.method == "GET":
+        package_name = request.args.get("package") or "default_app"
+        return jsonify(masvs_manager.get_assessment(package_name))
+    payload = request.json or {}
+    package_name = payload.get("package") or "default_app"
+    checklist = payload.get("checklist") or []
+    res = masvs_manager.save_assessment(package_name, checklist)
+    return jsonify(res)
+
+
+@app.route("/api/masvs/export", methods=["GET"])
+def api_masvs_export():
+    package_name = request.args.get("package") or "default_app"
+    html_report = masvs_manager.export_report_html(package_name)
+    return html_report, 200, {"Content-Type": "text/html; charset=utf-8", "Content-Disposition": f"attachment; filename=MASVS_Report_{package_name}.html"}
 
 
 @app.route("/api/objection/launch", methods=["POST"])

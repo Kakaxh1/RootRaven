@@ -28,37 +28,47 @@ ___
 
 | Module | Description |
 |---|---|
-| Fleet Management | Register, classify, and orchestrate multiple Android and iOS targets from one panel |
-| ADB Shell Console | Interactive `adb shell` sessions for connected USB or network Android devices |
-| SSH Shell Access | Persistent SSH sessions via Paramiko with auto ADB port-forwarding to bypass AP isolation |
-| Frida Orchestration | Real-time app enumeration, SSL pinning bypass, Objection launcher, and custom hook injection |
-| Storage Explorer | Browse internal SQLite databases and SharedPreference XML files on Android targets |
-| APK Decompiler | Upload `.apk` files for automated background decompilation via `jadx`, with in-browser source viewer |
-| Memory Scanner | Frida-powered `Memory.scanSync` template to detect sensitive values in process memory |
-| Burp Proxy Helper | Automated CA certificate installer and WiFi proxy instruction display |
-| Live Tabbed Logs | Split-panel layout with Device Logcat stream and Server debug logs side-by-side |
+| Fleet Management & Device Health | Register, classify, and monitor multiple Android & iOS targets with deep telemetry (OS, API, ABI, Root status, SELinux, Battery) |
+| App Intelligence & 1-Click Recon | Comprehensive app metadata, SDK levels, security flags (debuggable, allowBackup, cleartext), and component counts |
+| Manifest & Vulnerability Scanner | Automated audit for debug flags, cleartext traffic, backup settings, exported components, and high-privilege permissions |
+| SharedPreferences Secret Finder | Automated high-entropy scanner discovering tokens, API keys, AWS credentials, and PII in XML storage |
+| Frida Dynamic Hooking & Snippet Hub | 1-Click pre-built hook templates (Universal SSL, Root Bypass, Crypto Sniffer, Biometrics, Anti-Debug) with interactive injection modal |
+| Deep Link & Intent Fuzzer | Discovers registered custom URI schemes with security fuzzing payloads (Path Traversal, Open Redirect, XSS, SQLi) |
+| OWASP MASVS Checklist | Interactive MASVS v2 compliance tracker with persistent status/notes and one-click HTML audit report export |
+| Evidence Vault | Centralized repository for credentials, captured tokens, logs, command snippets, and database dumps with markdown export |
+| Burp Suite Setup Wizard | Automated WiFi proxy configuration, CA certificate installer into system trust store, and connectivity ping test |
+| Smart Logcat Streamer | Real-time device logcat streaming with smart regex highlighting for Errors, Secrets, URLs, and PII |
+| Storage Explorer | In-browser SQLite database and SharedPreferences XML file inspector |
+| Automated APK Decompiler | Upload `.apk` files for background decompilation via `jadx` with interactive Java source code viewer |
 
 ___
 
 ## Architecture
 
 ```
-Browser (Dashboard)
+Browser (RootRaven Command Center)
      |  WebSocket (Socket.IO)
      |  REST API (Flask)
      v
  app.py (Flask + SocketIO Server)
      |
-     +-- utils/adb_helper.py       # ADB subprocess interface
-     +-- utils/frida_manager.py    # Frida script store and process runner
-     +-- utils/device_manager.py   # In-memory device registry
+     +-- utils/device_manager.py   # Target fleet registry & deep health telemetry
+     +-- utils/recon.py            # One-click app intelligence engine
+     +-- utils/scanner.py          # Static manifest & SharedPreferences secret scanner
+     +-- utils/fuzzer.py           # Deep link extractor & intent fuzzer
+     +-- utils/frida_manager.py    # Frida script persistence, objection & hook runner
+     +-- utils/vault_manager.py    # Evidence vault storage & markdown exporter
+     +-- utils/masvs_manager.py    # OWASP MASVS assessment store & HTML report exporter
+     +-- utils/adb_helper.py       # ADB command orchestration & logcat streamer
      |
-     +-- templates/index.html      # Dashboard (split-panel command center)
-     +-- templates/devices.html    # Device registration and management
-     +-- templates/apps.html       # App listing, Frida, decompiler, storage
+     +-- templates/index.html      # Dashboard (command center & Burp wizard)
+     +-- templates/devices.html    # Device fleet registry & health modal
+     +-- templates/apps.html       # App Recon, Frida Hub, Manifest Scanner, Fuzzer, Storage
+     +-- templates/vault.html      # Evidence Vault UI
+     +-- templates/masvs.html      # OWASP MASVS Compliance Checklist UI
      |
-     `-- data/
-         +-- devices.json          # Persisted device registry
+     `-- data/scripts/             # Pre-built Frida instrumentation snippets
+```         +-- devices.json          # Persisted device registry
          `-- scripts/              # Saved Frida hook scripts
 ```
 

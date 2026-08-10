@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MASVS Checklist | RootRaven</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">R</div>
+        <h2>RootRaven</h2>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="/" class="nav-item">
+          <span class="nav-icon">/</span>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        <a href="/devices" class="nav-item">
+          <span class="nav-icon">></span>
+          <span class="nav-label">Devices</span>
+        </a>
+        <a href="/apps" class="nav-item">
+          <span class="nav-icon">#</span>
+          <span class="nav-label">App Listing</span>
+        </a>
+        <a href="/vault" class="nav-item">
+          <span class="nav-icon">*</span>
+          <span class="nav-label">Evidence Vault</span>
+        </a>
+        <a href="/masvs" class="nav-item active">
+          <span class="nav-icon">%</span>
+          <span class="nav-label">MASVS Checklist</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div style="margin-top:12px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.05); font-size:14px; color:#aaa; letter-spacing:0.5px;">
+          Developed by<br>
+          <span style="display:block; margin-top:8px; font-size:20px; font-weight:700; color:#fff; text-shadow: 0 0 12px rgba(255,255,255,0.8); font-family:'JetBrains Mono', monospace;">Kkaxh1</span>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="top-header">
+        <h1>OWASP MASVS Checklist</h1>
+        <div style="display:flex; gap:10px;">
+          <button id="exportMasvsHtmlBtn" type="button" style="background:#fff; color:#000; font-weight:700; display:inline-flex; align-items:center; gap:6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <span>Export HTML Report</span>
+          </button>
+          <button id="saveMasvsChecklistBtn" type="button" style="background:var(--cyan); color:#000; font-weight:700;">Save Progress</button>
+        </div>
+      </header>
+
+      <div class="content" style="max-width: 1200px;">
+        <!-- App Target Selector & Stats -->
+        <section class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+            <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:280px;">
+              <label style="font-size:13px; font-weight:600; color:var(--text-dim);">Target Package:</label>
+              <input id="masvsPackageInput" placeholder="com.reliance.businesseasy2" style="flex:1;" />
+              <button id="loadMasvsBtn" type="button" style="border-color:var(--cyan); color:var(--cyan);">Load Assessment</button>
+            </div>
+            
+            <div id="masvsScoreBadges" style="display:flex; gap:10px;">
+              <span class="vuln-badge low" id="masvsPassCount">0 Passed</span>
+              <span class="vuln-badge critical" id="masvsFailCount">0 Failed</span>
+              <span class="vuln-badge medium" id="masvsNtCount">0 Not Tested</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Checklist Accordion Container -->
+        <div id="masvsChecklistContainer" style="display:flex; flex-direction:column; gap:16px; margin-top:20px;"></div>
+      </div>
+    </main>
+  </div>
+
+  <div id="toast"></div>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

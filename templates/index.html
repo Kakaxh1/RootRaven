@@ -30,6 +30,14 @@
           <span class="nav-icon">#</span>
           <span class="nav-label">App Listing</span>
         </a>
+        <a href="/vault" class="nav-item">
+          <span class="nav-icon">*</span>
+          <span class="nav-label">Evidence Vault</span>
+        </a>
+        <a href="/masvs" class="nav-item">
+          <span class="nav-icon">%</span>
+          <span class="nav-label">MASVS Checklist</span>
+        </a>
       </nav>
       <div class="sidebar-footer">
         <div style="margin-top:12px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.05); font-size:14px; color:#aaa; letter-spacing:0.5px;">
@@ -48,36 +56,40 @@
         <div class="left-main">
           <section class="card">
             <h2>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; color:var(--cyan);"><circle cx="12" cy="12" r="10"></circle><line x1="22" y1="12" x2="18" y2="12"></line><line x1="6" y1="12" x2="2" y2="12"></line><line x1="12" y1="6" x2="12" y2="2"></line><line x1="12" y1="22" x2="12" y2="18"></line></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; color:var(--cyan);"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
               <span>Connected Targets</span>
             </h2>
-            <div class="row segmented-control">
-              <input type="radio" name="osFilter" id="filterAll" value="all" checked>
-              <label for="filterAll">Globally</label>
-              <input type="radio" name="osFilter" id="filterAndroid" value="android">
-              <label for="filterAndroid">Android OS</label>
-              <input type="radio" name="osFilter" id="filterIos" value="ios">
-              <label for="filterIos">Apple iOS</label>
-            </div>
-            <div id="deviceCards" class="grid"></div>
+            <div id="deviceCards" class="device-grid" style="margin-top:16px;"></div>
           </section>
 
-          <section class="card">
+          <!-- Burp Suite Setup Wizard -->
+          <section class="card" id="burpWizardCard">
             <h2>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; color:var(--cyan);"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-              <span>Proxy Intercept Settings</span>
+              <span>Burp Suite Proxy Setup Wizard</span>
             </h2>
-            <ul>
-              <li id="proxyWifi">Configure WiFi proxy to: loading...</li>
-              <li id="proxyBurp">Configure Burp Suite listener to: <span class="mono" style="color:var(--cyan)">0.0.0.0:8080</span></li>
-            </ul>
-            <div class="row" style="margin-top:12px; border-top:1px solid rgba(255,255,255,0.05); padding-top:12px; flex-direction:column; align-items:flex-start; gap:8px;">
-              <label style="font-size:13px; color:var(--text-dim);">Automated Burp CA Cert Installer (Android):</label>
-              <div class="row" style="width:100%;">
-                <select id="certDeviceSelect" style="max-width:200px;"></select>
-                <input type="file" id="certFileInput" accept=".der,.pem" style="display:none;" />
-                <button id="uploadCertBtn" style="border-color:var(--cyan); color:var(--cyan);">Select & Install CA Certificate</button>
+            <p>Automate Android proxy routing and push Burp CA Certificate into system root trust store.</p>
+            
+            <div class="row" style="gap:10px;">
+              <select id="burpDeviceSelect" style="flex:2;"></select>
+              <input id="burpHostIp" placeholder="Burp IP (e.g. 192.168.1.100)" style="flex:2;" />
+              <input id="burpPort" placeholder="8080" value="8080" style="flex:1; max-width:90px;" />
+            </div>
+
+            <div class="row" style="margin-top:10px; gap:10px;">
+              <button id="setProxyBtn" type="button" style="background:var(--cyan); color:#000; font-weight:700; flex:1;">1. Configure Proxy</button>
+              <button id="clearProxyBtn" type="button" style="border-color:rgba(255,255,255,0.2); flex:1;">Clear Proxy</button>
+              <button id="testProxyConnBtn" type="button" style="background:#fff; color:#000; font-weight:700; flex:1;">2. Test Proxy Connection</button>
+            </div>
+
+            <div style="margin-top:14px; border-top:1px solid rgba(255,255,255,0.06); padding-top:12px;">
+              <label style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-dim); display:block; margin-bottom:8px;">3. Automated Burp CA Certificate Installer:</label>
+              <div class="row" style="gap:10px;">
+                <input type="file" id="certFileInput" accept=".der,.cer,.crt,.pem" style="display:none;" />
+                <button id="uploadCertBtn" type="button" style="border-color:var(--cyan); color:var(--cyan); flex:1;">Select cacert.der / cacert.pem</button>
+                <button id="installCertBtn" type="button" style="background:var(--cyan); color:#000; font-weight:700; flex:1;">Push to System Store</button>
               </div>
+              <div id="certStatusLabel" style="font-size:12px; color:var(--text-dim); margin-top:8px;">Ready to install certificate</div>
             </div>
           </section>
 
@@ -138,7 +150,17 @@
               <div class="row" style="margin-top:-6px;">
                 <input id="logcatFilterText" placeholder="Filter logs..." style="flex:1; min-width:120px;" />
               </div>
-              <div class="row" style="margin-top:-6px;">
+              
+              <!-- Smart Logcat Quick Filter Chips -->
+              <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; margin-bottom:8px;">
+                <button type="button" class="quick-chip-btn" onclick="window.__filterLogcat('')">All</button>
+                <button type="button" class="quick-chip-btn" style="color:#ff6b6b;" onclick="window.__filterLogcat('exception|error|fatal|crash')">Errors</button>
+                <button type="button" class="quick-chip-btn" style="color:#ffd60a;" onclick="window.__filterLogcat('token|bearer|key|secret|auth|password')">Secrets</button>
+                <button type="button" class="quick-chip-btn" style="color:#38bdf8;" onclick="window.__filterLogcat('http|https|api|v1|v2')">URLs</button>
+                <button type="button" class="quick-chip-btn" style="color:#34d399;" onclick="window.__filterLogcat('@|phone|email|user')">PII</button>
+              </div>
+
+              <div class="row" style="margin-top:-2px;">
                 <button id="startLogcatBtn" style="flex:1;">Start</button>
                 <button id="stopLogcatBtn" style="border-color:var(--red); color:var(--red); flex:1;">Stop</button>
                 <button id="clearLogcatBtn" style="flex:1;">Clear</button>
@@ -157,6 +179,18 @@
         </div>
       </div>
     </main>
+  </div>
+
+  <!-- Device Health Deep Telemetry Modal -->
+  <div id="deviceHealthModal" class="modal-backdrop">
+    <div class="modal" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3 id="healthModalTitle">Device Health & Telemetry</h3>
+        <button type="button" class="modal-close" id="closeHealthModalBtn" title="Close">&#x2715;</button>
+      </div>
+
+      <div id="healthModalContent" style="margin-top:16px; display:flex; flex-direction:column; gap:12px;"></div>
+    </div>
   </div>
 
   <div id="toast"></div>

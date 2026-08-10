@@ -30,6 +30,14 @@
           <span class="nav-icon">#</span>
           <span class="nav-label">App Listing</span>
         </a>
+        <a href="/vault" class="nav-item">
+          <span class="nav-icon">*</span>
+          <span class="nav-label">Evidence Vault</span>
+        </a>
+        <a href="/masvs" class="nav-item">
+          <span class="nav-icon">%</span>
+          <span class="nav-label">MASVS Checklist</span>
+        </a>
       </nav>
       <div class="sidebar-footer">
         <div style="margin-top:12px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.05); font-size:14px; color:#aaa; letter-spacing:0.5px;">
@@ -198,6 +206,50 @@
                 <span id="fuzzerStatusBadge" style="font-size:11px; font-family:'JetBrains Mono'; color:var(--text-dim);">Idle</span>
               </div>
               <pre id="fuzzerOutputConsole" class="mono debug-console" style="min-height:90px; max-height:200px; font-size:11px; margin:0;"></pre>
+            </div>
+          </section>
+
+          <!-- One-Click App Recon & Deep Intelligence -->
+          <section class="card" id="appReconCard">
+            <h2>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; color:var(--cyan);"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+              <span>One-Click App Recon & Deep Intelligence</span>
+            </h2>
+            <p>Instantly collect package metadata, SDK levels, security flags, and component counts.</p>
+            <div class="row" style="gap:10px;">
+              <input id="reconPackageName" placeholder="Target Package Name (e.g. com.reliance.businesseasy2)" style="flex:3;" />
+              <button id="runReconBtn" type="button" style="background:var(--cyan); color:#000; font-weight:700; flex:1;">Run 1-Click Recon</button>
+            </div>
+
+            <div id="reconResultsWrap" style="margin-top:16px; display:none;">
+              <!-- Metadata Grid -->
+              <div id="reconMetaGrid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:12px; margin-bottom:16px;"></div>
+
+              <!-- Security Flags Status -->
+              <div id="reconFlagsWrap" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px;"></div>
+
+              <!-- Component Tabs & List -->
+              <div style="border-top:1px solid rgba(255,255,255,0.06); padding-top:14px;">
+                <label style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-dim); display:block; margin-bottom:8px;">Discovered Permissions & Exported Components:</label>
+                <div id="reconComponentSummary" style="font-size:12px; color:#cbd5e1; font-family:'JetBrains Mono', monospace; background:rgba(0,0,0,0.3); padding:12px; border-radius:8px; max-height:200px; overflow-y:auto;"></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SharedPreferences Secret Finder -->
+          <section class="card" id="sharedPrefsScannerCard">
+            <h2>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; color:var(--cyan);"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+              <span>SharedPreferences Secret Finder & PII Scanner</span>
+            </h2>
+            <p>Scan XML configurations for hardcoded API keys, JWT tokens, AWS credentials, and PII.</p>
+            <div class="row" style="gap:10px;">
+              <input id="prefScannerPackageName" placeholder="Target Package Name (e.g. com.reliance.businesseasy2)" style="flex:3;" />
+              <button id="runPrefScannerBtn" type="button" style="background:#fff; color:#000; font-weight:700; flex:1;">Scan XML Secrets</button>
+            </div>
+
+            <div id="prefScannerResultsWrap" style="margin-top:16px; display:none;">
+              <div id="prefFindingsList" style="display:flex; flex-direction:column; gap:10px;"></div>
             </div>
           </section>
 

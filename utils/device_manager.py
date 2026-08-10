@@ -83,3 +83,67 @@ class DeviceManager:
             return {"status": "error", "message": "Device not found"}
         self._save(next_devices)
         return {"status": "success", "message": "Device deleted"}
+
+    def get_device_health(self, device):
+        if not device:
+            return {"status": "error", "message": "Device not found"}
+
+        if device["type"] == "ios":
+            return {
+                "status": "success",
+                "platform": "iOS",
+                "name": device["name"],
+                "ip": device["ip"],
+                "model": "Apple iOS Device",
+                "version": "iOS (Network Target)",
+                "root_status": "Jailbroken / SSH Ready",
+                "battery": "N/A",
+                "selinux": "N/A",
+                "abi": "arm64",
+            }
+
+        # Android Health Collection via ADB
+        target_ip = device.get("ip", "")
+        adb_prefix = f"adb -s {target_ip}" if target_ip else "adb"
+
+        def _run(cmd):
+            try:
+                import subprocess
+                p = subprocess.run(f"{adb_prefix} {cmd}", capture_output=True, text=True, shell=True, timeout=5)
+                return (p.stdout or "").strip()
+            except Exception:
+                return ""
+
+        model = _run("shell getprop ro.product.model") or device["name"]
+        brand = _run("shell getprop ro.product.brand") or "Android"
+        version = _run("shell getprop ro.build.version.release") or "Unknown"
+        sdk = _run("shell getprop ro.build.version.sdk") or "Unknown"
+        abi = _run("shell getprop ro.product.cpu.abi") or "arm64-v8a"
+        selinux = _run("shell getenforce") or "Unknown"
+
+        # Check root status
+        su_check = _run("shell which su")
+        root_status = "Rooted (su available)" if ("su" in su_check or "/bin/" in su_check) else "Non-Rooted / Unprivileged"
+
+        # Battery check
+        battery_out = _run("shell dumpsys battery")
+        battery_pct = "Unknown"
+        for line in battery_out.splitlines():
+            if "level:" in line:
+                battery_pct = line.split(":")[-1].strip() + "%"
+                break
+
+        return {
+            "status": "success",
+            "platform": "Android",
+            "name": device["name"],
+            "ip": target_ip,
+            "brand": brand.capitalize(),
+            "model": model,
+            "version": f"Android {version} (API {sdk})",
+            "sdk": sdk,
+            "abi": abi,
+            "selinux": selinux,
+            "root_status": root_status,
+            "battery": battery_pct,
+        }

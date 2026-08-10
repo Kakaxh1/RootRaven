@@ -43,6 +43,8 @@ function getPage() {
   const p = window.location.pathname;
   if (p === "/devices") return "devices";
   if (p === "/apps") return "apps";
+  if (p === "/vault") return "vault";
+  if (p === "/masvs") return "masvs";
   return "dashboard";
 }
 
@@ -273,6 +275,7 @@ async function renderDashboard() {
 
       const actions = document.createElement("div");
       actions.className = "inline-actions";
+      actions.appendChild(actionButton("Health", () => window.__showDeviceHealth(device.id)));
       if (device.type === "android") {
         actions.appendChild(actionButton("Connect", () => connectDevice(device)));
         actions.appendChild(actionButton("Install APK", () => installAppToDevice(device)));
@@ -289,24 +292,115 @@ async function renderDashboard() {
     });
   };
 
-  const radios = document.querySelectorAll('input[name="osFilter"]');
-  radios.forEach(r => {
-    r.onchange = (e) => { filter = e.target.value; rerender(); };
-  });
-
-  const filterAllBtn = document.getElementById("filterAll");
-  if (filterAllBtn && filterAllBtn.tagName.toLowerCase() === 'button') {
-    // Fallback if toggles aren't present
-    document.getElementById("filterAll").onclick = () => { filter = "all"; rerender(); };
-    document.getElementById("filterAndroid").onclick = () => { filter = "android"; rerender(); };
-    document.getElementById("filterIos").onclick = () => { filter = "ios"; rerender(); };
-  }
-
   rerender();
 
-  const proxy = await api("/api/proxy-info");
-  const proxyWifi = document.getElementById("proxyWifi");
-  if (proxyWifi) proxyWifi.textContent = `Configure WiFi proxy to: ${proxy.pc_ip}:8080`;
+  // --- Burp Setup Wizard Binding ---
+  const burpDeviceSelect = document.getElementById("burpDeviceSelect");
+  const burpHostIp = document.getElementById("burpHostIp");
+  const burpPort = document.getElementById("burpPort");
+  const setProxyBtn = document.getElementById("setProxyBtn");
+  const clearProxyBtn = document.getElementById("clearProxyBtn");
+  const testProxyConnBtn = document.getElementById("testProxyConnBtn");
+  const certFileInput = document.getElementById("certFileInput");
+  const uploadCertBtn = document.getElementById("uploadCertBtn");
+  const installCertBtn = document.getElementById("installCertBtn");
+  const certStatusLabel = document.getElementById("certStatusLabel");
+
+  if (burpDeviceSelect && burpHostIp && setProxyBtn) {
+    const androidDevices = devices.filter(d => d.type === "android");
+    burpDeviceSelect.innerHTML = androidDevices.length
+      ? androidDevices.map(d => `<option value="${d.id}">${d.name} (${d.ip})</option>`).join("")
+      : "<option value=''>No Android Devices</option>";
+
+    try {
+      const proxy = await api("/api/proxy-info");
+      if (proxy && proxy.pc_ip) burpHostIp.value = proxy.pc_ip;
+    } catch (e) {}
+
+    setProxyBtn.onclick = async () => {
+      const device_id = burpDeviceSelect.value;
+      const host = burpHostIp.value.trim();
+      const port = burpPort.value.trim() || "8080";
+      if (!device_id || !host) {
+        toast("Please select a device and enter Burp IP");
+        return;
+      }
+      toast("Configuring device proxy settings...");
+      try {
+        const res = await api("/api/set-proxy", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ device_id, host, port })
+        });
+        toast(res.message || "Proxy configured");
+      } catch (err) {
+        toast("Failed to set proxy: " + err.message);
+      }
+    };
+
+    if (clearProxyBtn) {
+      clearProxyBtn.onclick = async () => {
+        const device_id = burpDeviceSelect.value;
+        if (!device_id) return;
+        try {
+          const res = await api("/api/set-proxy", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ device_id, host: ":0", port: "" })
+          });
+          toast(res.message || "Proxy settings cleared");
+        } catch (err) {
+          toast("Failed to clear proxy: " + err.message);
+        }
+      };
+    }
+
+    if (testProxyConnBtn) {
+      testProxyConnBtn.onclick = async () => {
+        const device_id = burpDeviceSelect.value;
+        if (!device_id) return;
+        toast("Testing proxy connectivity from device...");
+        try {
+          const res = await api(`/api/devices/${device_id}/debug-http`);
+          toast(res.message || "Proxy test complete");
+        } catch (err) {
+          toast("Proxy test error: " + err.message);
+        }
+      };
+    }
+
+    if (uploadCertBtn && certFileInput && installCertBtn) {
+      uploadCertBtn.onclick = () => certFileInput.click();
+      certFileInput.onchange = () => {
+        if (certFileInput.files.length) {
+          if (certStatusLabel) certStatusLabel.textContent = `Selected: ${certFileInput.files[0].name}`;
+        }
+      };
+
+      installCertBtn.onclick = async () => {
+        const device_id = burpDeviceSelect.value;
+        if (!device_id) {
+          toast("Please select an Android device");
+          return;
+        }
+        if (!certFileInput.files.length) {
+          toast("Please choose a certificate file first");
+          return;
+        }
+        toast("Installing CA Certificate to system store...");
+        const fd = new FormData();
+        fd.append("device_id", device_id);
+        fd.append("cert_file", certFileInput.files[0]);
+        try {
+          const res = await fetch("/api/install-cert", { method: "POST", body: fd }).then(r => r.json());
+          toast(res.message || "Certificate installed");
+          if (certStatusLabel) certStatusLabel.textContent = res.message || "Installed";
+        } catch (err) {
+          toast("Failed to install certificate: " + err.message);
+        }
+      };
+    }
+  }
 
   const sshIp = document.getElementById("sshIp");
   const sshPort = document.getElementById("sshPort");
@@ -1190,6 +1284,127 @@ async function renderAppsPage() {
     };
   }
 
+  // --- One-Click App Recon Binding ---
+  const reconPackageName = document.getElementById("reconPackageName");
+  const runReconBtn = document.getElementById("runReconBtn");
+  const reconResultsWrap = document.getElementById("reconResultsWrap");
+  const reconMetaGrid = document.getElementById("reconMetaGrid");
+  const reconFlagsWrap = document.getElementById("reconFlagsWrap");
+  const reconComponentSummary = document.getElementById("reconComponentSummary");
+
+  if (reconPackageName && runReconBtn && reconResultsWrap && reconMetaGrid && reconFlagsWrap && reconComponentSummary) {
+    runReconBtn.onclick = async () => {
+      const device_id = select.value;
+      const package_name = reconPackageName.value.trim();
+      if (!device_id || !package_name) {
+        toast("Please select a target device and specify a package name");
+        return;
+      }
+      runReconBtn.disabled = true;
+      runReconBtn.textContent = "Collecting Intel...";
+      toast("Gathering comprehensive application metadata...");
+
+      try {
+        const res = await api("/api/recon/package", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ package_name, device_id })
+        });
+
+        if (res.status === "success") {
+          const counts = res.counts || {};
+          reconMetaGrid.innerHTML = `
+            <div class="recon-stat-box"><span class="recon-stat-label">Version</span><span class="recon-stat-val">${res.version_name} (${res.version_code})</span></div>
+            <div class="recon-stat-box"><span class="recon-stat-label">SDK Levels</span><span class="recon-stat-val">Min: ${res.min_sdk} | Target: ${res.target_sdk}</span></div>
+            <div class="recon-stat-box"><span class="recon-stat-label">App UID</span><span class="recon-stat-val">${res.uid}</span></div>
+            <div class="recon-stat-box"><span class="recon-stat-label">Activities / Services</span><span class="recon-stat-val">${counts.activities || 0} / ${counts.services || 0}</span></div>
+            <div class="recon-stat-box"><span class="recon-stat-label">Receivers / Providers</span><span class="recon-stat-val">${counts.receivers || 0} / ${counts.providers || 0}</span></div>
+            <div class="recon-stat-box"><span class="recon-stat-label">Permissions Count</span><span class="recon-stat-val">${counts.permissions || 0} Declared</span></div>
+          `;
+
+          const flags = res.flags || {};
+          reconFlagsWrap.innerHTML = `
+            <span class="vuln-badge ${flags.debuggable ? 'critical' : 'low'}">Debuggable: ${flags.debuggable ? 'TRUE (VULNERABLE)' : 'FALSE'}</span>
+            <span class="vuln-badge ${flags.allow_backup ? 'medium' : 'low'}">AllowBackup: ${flags.allow_backup ? 'TRUE' : 'FALSE'}</span>
+            <span class="vuln-badge ${flags.cleartext_traffic ? 'high' : 'low'}">Cleartext Traffic: ${flags.cleartext_traffic ? 'TRUE' : 'FALSE'}</span>
+          `;
+
+          let summaryText = `[Permissions]\n${(res.permissions || []).join('\n') || '(none)'}\n\n[Activities (First 30)]\n${(res.activities || []).join('\n') || '(none)'}\n\n[Services]\n${(res.services || []).join('\n') || '(none)'}\n\n[Broadcast Receivers]\n${(res.receivers || []).join('\n') || '(none)'}\n\n[Content Providers]\n${(res.providers || []).join('\n') || '(none)'}`;
+          reconComponentSummary.textContent = summaryText;
+
+          reconResultsWrap.style.display = "block";
+          toast("Recon intel gathered successfully");
+        } else {
+          toast(res.message || "Failed to gather app recon");
+        }
+      } catch (err) {
+        toast("Recon error: " + err.message);
+      } finally {
+        runReconBtn.disabled = false;
+        runReconBtn.textContent = "Run 1-Click Recon";
+      }
+    };
+  }
+
+  // --- SharedPreferences Secret Finder Binding ---
+  const prefScannerPackageName = document.getElementById("prefScannerPackageName");
+  const runPrefScannerBtn = document.getElementById("runPrefScannerBtn");
+  const prefScannerResultsWrap = document.getElementById("prefScannerResultsWrap");
+  const prefFindingsList = document.getElementById("prefFindingsList");
+
+  if (prefScannerPackageName && runPrefScannerBtn && prefScannerResultsWrap && prefFindingsList) {
+    runPrefScannerBtn.onclick = async () => {
+      const device_id = select.value;
+      const package_name = prefScannerPackageName.value.trim();
+      if (!device_id || !package_name) {
+        toast("Please select a target device and specify a package name");
+        return;
+      }
+
+      runPrefScannerBtn.disabled = true;
+      runPrefScannerBtn.textContent = "Scanning XML...";
+      toast("Scanning SharedPreferences for hardcoded secrets and tokens...");
+
+      try {
+        const res = await api("/api/scanner/shared-prefs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ package_name, device_id })
+        });
+
+        if (res.status === "success") {
+          const findings = res.findings || [];
+          if (!findings.length) {
+            prefFindingsList.innerHTML = `<div style="color:#3ddc84; font-size:13px;">No high-risk secrets or credentials detected across ${res.scanned_files_count || 0} XML preference files.</div>`;
+          } else {
+            prefFindingsList.innerHTML = findings.map(f => `
+              <div class="vuln-card ${f.severity.toLowerCase()}">
+                <div class="vuln-card-header">
+                  <span class="vuln-title">${f.type}</span>
+                  <span class="vuln-badge ${f.severity.toLowerCase()}">${f.severity}</span>
+                </div>
+                <div class="vuln-desc"><b>Source File:</b> <code style="color:var(--cyan);">${f.file}</code></div>
+                <div class="vault-code-block">${f.masked_value}</div>
+                <div style="display:flex; justify-content:flex-end; gap:8px;">
+                  <button type="button" class="quick-chip-btn" onclick="window.__copyText('${f.raw_value.replace(/'/g, "\\'")}')">Copy Secret</button>
+                </div>
+              </div>
+            `).join("");
+          }
+          prefScannerResultsWrap.style.display = "block";
+          toast(`Discovered ${findings.length} sensitive values`);
+        } else {
+          toast(res.message || "Failed to scan SharedPreferences");
+        }
+      } catch (err) {
+        toast("Error: " + err.message);
+      } finally {
+        runPrefScannerBtn.disabled = false;
+        runPrefScannerBtn.textContent = "Scan XML Secrets";
+      }
+    };
+  }
+
   // --- Storage Explorer (SQLite & XML) Binding ---
   const storagePackageName = document.getElementById("storagePackageName");
   const scanStorageBtn = document.getElementById("scanStorageBtn");
@@ -1635,12 +1850,310 @@ function renderApps(apps) {
   };
 }
 
+// ─────────────────────────────────────────────────────────────
+// Device Health Telemetry Modal Handler
+// ─────────────────────────────────────────────────────────────
+
+window.__showDeviceHealth = async (deviceId) => {
+  const modal = document.getElementById("deviceHealthModal");
+  const content = document.getElementById("healthModalContent");
+  const closeBtn = document.getElementById("closeHealthModalBtn");
+  if (!modal || !content) return;
+
+  if (closeBtn) closeBtn.onclick = () => modal.classList.remove("open");
+  modal.onclick = (e) => { if (e.target === modal) modal.classList.remove("open"); };
+
+  modal.classList.add("open");
+  content.innerHTML = `<div style="color:var(--text-dim); text-align:center; padding:20px;">Gathering deep telemetry from device...</div>`;
+
+  try {
+    const res = await api(`/api/device/health/${deviceId}`);
+    if (res.status === "success") {
+      content.innerHTML = `
+        <div class="health-telemetry-row">
+          <span style="color:var(--text-dim); font-size:13px;">Target Device</span>
+          <span style="color:#fff; font-weight:700; font-family:'JetBrains Mono'">${res.name} (${res.ip})</span>
+        </div>
+        <div class="health-telemetry-row">
+          <span style="color:var(--text-dim); font-size:13px;">Platform & OS</span>
+          <span style="color:var(--cyan); font-weight:700; font-family:'JetBrains Mono'">${res.version}</span>
+        </div>
+        <div class="health-telemetry-row">
+          <span style="color:var(--text-dim); font-size:13px;">Hardware & Architecture</span>
+          <span style="color:#fff; font-family:'JetBrains Mono'">${res.brand || ''} ${res.model} (${res.abi})</span>
+        </div>
+        <div class="health-telemetry-row">
+          <span style="color:var(--text-dim); font-size:13px;">Root / Privilege Status</span>
+          <span style="color:${(res.root_status || '').includes('Rooted') ? '#3ddc84' : '#ffd60a'}; font-weight:700; font-family:'JetBrains Mono'">${res.root_status}</span>
+        </div>
+        <div class="health-telemetry-row">
+          <span style="color:var(--text-dim); font-size:13px;">SELinux Security Mode</span>
+          <span style="color:${res.selinux === 'Enforcing' ? '#3ddc84' : '#ff6b6b'}; font-weight:700; font-family:'JetBrains Mono'">${res.selinux}</span>
+        </div>
+        <div class="health-telemetry-row">
+          <span style="color:var(--text-dim); font-size:13px;">Battery Power</span>
+          <span style="color:#fff; font-family:'JetBrains Mono'">${res.battery}</span>
+        </div>
+      `;
+    } else {
+      content.innerHTML = `<div style="color:var(--red); padding:20px;">Failed to gather health: ${res.message}</div>`;
+    }
+  } catch (err) {
+    content.innerHTML = `<div style="color:var(--red); padding:20px;">Error: ${err.message}</div>`;
+  }
+};
+
+// ─────────────────────────────────────────────────────────────
+// Smart Logcat Filter Handler
+// ─────────────────────────────────────────────────────────────
+
+window.__filterLogcat = (term) => {
+  const filterInput = document.getElementById("logcatFilterText");
+  if (filterInput) {
+    filterInput.value = term;
+    toast(`Logcat filter applied: ${term || "All"}`);
+  }
+};
+
+// ─────────────────────────────────────────────────────────────
+// Evidence Vault Page Handler
+// ─────────────────────────────────────────────────────────────
+
+async function renderVaultPage() {
+  const vaultGrid = document.getElementById("vaultGrid");
+  const vaultSearchInput = document.getElementById("vaultSearchInput");
+  const vaultCategoryFilter = document.getElementById("vaultCategoryFilter");
+  const addVaultItemBtn = document.getElementById("addVaultItemBtn");
+  const vaultModal = document.getElementById("vaultModal");
+  const closeVaultModalBtn = document.getElementById("closeVaultModalBtn");
+  const cancelVaultModalBtn = document.getElementById("cancelVaultModalBtn");
+  const vaultForm = document.getElementById("vaultForm");
+
+  let allEvidence = [];
+
+  const loadEvidence = async () => {
+    try {
+      const res = await api("/api/vault");
+      if (res.status === "success") {
+        allEvidence = res.items || [];
+        renderList();
+      }
+    } catch (err) {
+      toast("Failed to load evidence vault: " + err.message);
+    }
+  };
+
+  const renderList = () => {
+    if (!vaultGrid) return;
+    const query = (vaultSearchInput?.value || "").toLowerCase();
+    const cat = vaultCategoryFilter?.value || "";
+
+    const filtered = allEvidence.filter(item => {
+      const matchesQuery = !query ||
+        item.title.toLowerCase().includes(query) ||
+        (item.content || "").toLowerCase().includes(query) ||
+        (item.package || "").toLowerCase().includes(query) ||
+        (item.tags || []).some(t => t.toLowerCase().includes(query));
+      const matchesCat = !cat || item.category === cat;
+      return matchesQuery && matchesCat;
+    });
+
+    if (!filtered.length) {
+      vaultGrid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--text-dim);">No evidence entries found in vault. Click "+ Add Evidence" above.</div>`;
+      return;
+    }
+
+    vaultGrid.innerHTML = filtered.map(item => `
+      <div class="vault-card">
+        <div class="vault-card-header">
+          <div>
+            <div class="vault-card-title">${item.title}</div>
+            <div style="font-size:11px; color:var(--text-dim); margin-top:2px;">${item.category} • ${item.package || 'Global'} • ${item.created_at}</div>
+          </div>
+          <button type="button" class="quick-chip-btn" style="color:#ff6b6b; border-color:rgba(255,59,48,0.3);" onclick="window.__deleteVaultItem('${item.id}')">Delete</button>
+        </div>
+
+        ${(item.tags && item.tags.length) ? `
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            ${item.tags.map(t => `<span class="vault-tag">#${t}</span>`).join('')}
+          </div>
+        ` : ''}
+
+        <div class="vault-code-block">${item.content}</div>
+
+        <div style="display:flex; justify-content:flex-end;">
+          <button type="button" class="quick-chip-btn" onclick="window.__copyText('${(item.content || '').replace(/'/g, "\\'")}')">Copy Data</button>
+        </div>
+      </div>
+    `).join("");
+  };
+
+  window.__deleteVaultItem = async (id) => {
+    if (!confirm("Remove this evidence item from vault?")) return;
+    try {
+      const res = await api(`/api/vault/${id}`, { method: "DELETE" });
+      toast(res.message || "Deleted");
+      await loadEvidence();
+    } catch (e) {
+      toast("Error deleting: " + e.message);
+    }
+  };
+
+  if (vaultSearchInput) vaultSearchInput.oninput = renderList;
+  if (vaultCategoryFilter) vaultCategoryFilter.onchange = renderList;
+
+  if (addVaultItemBtn && vaultModal) {
+    addVaultItemBtn.onclick = () => vaultModal.classList.add("open");
+    if (closeVaultModalBtn) closeVaultModalBtn.onclick = () => vaultModal.classList.remove("open");
+    if (cancelVaultModalBtn) cancelVaultModalBtn.onclick = () => vaultModal.classList.remove("open");
+    vaultModal.onclick = (e) => { if (e.target === vaultModal) vaultModal.classList.remove("open"); };
+  }
+
+  if (vaultForm) {
+    vaultForm.onsubmit = async (e) => {
+      e.preventDefault();
+      const title = document.getElementById("vaultTitle").value.trim();
+      const category = document.getElementById("vaultCategory").value;
+      const package_name = document.getElementById("vaultPackage").value.trim();
+      const tags = document.getElementById("vaultTags").value.split(",").map(t => t.trim()).filter(Boolean);
+      const content = document.getElementById("vaultContent").value;
+
+      try {
+        const res = await api("/api/vault", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title, category, package: package_name, tags, content })
+        });
+        toast(res.message || "Evidence stored in vault");
+        vaultModal.classList.remove("open");
+        vaultForm.reset();
+        await loadEvidence();
+      } catch (err) {
+        toast("Failed to store evidence: " + err.message);
+      }
+    };
+  }
+
+  await loadEvidence();
+}
+
+// ─────────────────────────────────────────────────────────────
+// OWASP MASVS Checklist Page Handler
+// ─────────────────────────────────────────────────────────────
+
+async function renderMasvsPage() {
+  const masvsPackageInput = document.getElementById("masvsPackageInput");
+  const loadMasvsBtn = document.getElementById("loadMasvsBtn");
+  const saveMasvsChecklistBtn = document.getElementById("saveMasvsChecklistBtn");
+  const exportMasvsHtmlBtn = document.getElementById("exportMasvsHtmlBtn");
+  const masvsChecklistContainer = document.getElementById("masvsChecklistContainer");
+  const masvsPassCount = document.getElementById("masvsPassCount");
+  const masvsFailCount = document.getElementById("masvsFailCount");
+  const masvsNtCount = document.getElementById("masvsNtCount");
+
+  let currentChecklist = [];
+
+  const updateScores = () => {
+    const passed = currentChecklist.filter(c => c.status === "PASS").length;
+    const failed = currentChecklist.filter(c => c.status === "FAIL").length;
+    const nt = currentChecklist.filter(c => c.status === "NOT_TESTED").length;
+
+    if (masvsPassCount) masvsPassCount.textContent = `${passed} Passed`;
+    if (masvsFailCount) masvsFailCount.textContent = `${failed} Failed`;
+    if (masvsNtCount) masvsNtCount.textContent = `${nt} Not Tested`;
+  };
+
+  const renderChecklist = () => {
+    if (!masvsChecklistContainer) return;
+    masvsChecklistContainer.innerHTML = currentChecklist.map((item, idx) => `
+      <div class="masvs-item-card">
+        <div class="masvs-item-header">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span class="masvs-item-id">${item.id}</span>
+            <span class="vuln-badge medium">${item.category}</span>
+          </div>
+          <select class="masvs-status-select" onchange="window.__changeMasvsStatus(${idx}, this.value)">
+            <option value="NOT_TESTED" ${item.status === 'NOT_TESTED' ? 'selected' : ''}>NOT TESTED</option>
+            <option value="PASS" ${item.status === 'PASS' ? 'selected' : ''} style="color:#3ddc84;">PASS (Compliant)</option>
+            <option value="FAIL" ${item.status === 'FAIL' ? 'selected' : ''} style="color:#ff453a;">FAIL (Vulnerable)</option>
+          </select>
+        </div>
+
+        <div>
+          <div style="font-weight:700; color:#fff; font-size:14px;">${item.title}</div>
+          <div style="color:var(--text-dim); font-size:12px; margin-top:2px;">${item.description}</div>
+        </div>
+
+        <div>
+          <input placeholder="Auditor assessment notes / testing proof..." value="${item.notes || ''}" style="width:100%; font-size:12px; padding:8px 12px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.08); border-radius:6px; color:#fff;" onchange="window.__changeMasvsNotes(${idx}, this.value)" />
+        </div>
+      </div>
+    `).join("");
+
+    updateScores();
+  };
+
+  window.__changeMasvsStatus = (idx, status) => {
+    if (currentChecklist[idx]) {
+      currentChecklist[idx].status = status;
+      updateScores();
+    }
+  };
+
+  window.__changeMasvsNotes = (idx, notes) => {
+    if (currentChecklist[idx]) {
+      currentChecklist[idx].notes = notes;
+    }
+  };
+
+  const loadAssessment = async () => {
+    const pkg = masvsPackageInput?.value.trim() || "default_app";
+    try {
+      const res = await api(`/api/masvs/checklist?package=${pkg}`);
+      currentChecklist = res.checklist || [];
+      renderChecklist();
+      toast(`Loaded MASVS assessment for ${pkg}`);
+    } catch (e) {
+      toast("Error loading MASVS checklist: " + e.message);
+    }
+  };
+
+  if (loadMasvsBtn) loadMasvsBtn.onclick = loadAssessment;
+
+  if (saveMasvsChecklistBtn) {
+    saveMasvsChecklistBtn.onclick = async () => {
+      const pkg = masvsPackageInput?.value.trim() || "default_app";
+      try {
+        const res = await api("/api/masvs/checklist", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ package: pkg, checklist: currentChecklist })
+        });
+        toast(res.message || "MASVS assessment saved successfully");
+      } catch (e) {
+        toast("Failed to save MASVS checklist: " + e.message);
+      }
+    };
+  }
+
+  if (exportMasvsHtmlBtn) {
+    exportMasvsHtmlBtn.onclick = () => {
+      const pkg = masvsPackageInput?.value.trim() || "default_app";
+      window.location.href = `/api/masvs/export?package=${pkg}`;
+    };
+  }
+
+  await loadAssessment();
+}
+
 function bootstrap() {
   attachSocketListeners();
   const page = getPage();
   if (page === "dashboard") renderDashboard();
   if (page === "devices") renderDevicesPage();
   if (page === "apps") renderAppsPage();
+  if (page === "vault") renderVaultPage();
+  if (page === "masvs") renderMasvsPage();
 
   // --- Tab switching logic for Logcat vs Server logs ---
   const tabLogcat = document.getElementById("tabLogcat");
@@ -1687,3 +2200,4 @@ function bootstrap() {
 }
 
 bootstrap();
+

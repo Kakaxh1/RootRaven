@@ -89,6 +89,14 @@
           <span class="nav-icon">#</span>
           <span class="nav-label">App Listing</span>
         </a>
+        <a href="/vault" class="nav-item">
+          <span class="nav-icon">*</span>
+          <span class="nav-label">Evidence Vault</span>
+        </a>
+        <a href="/masvs" class="nav-item">
+          <span class="nav-icon">%</span>
+          <span class="nav-label">MASVS Checklist</span>
+        </a>
       </nav>
       <div class="sidebar-footer">
         <div style="margin-top:12px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.05); font-size:14px; color:#aaa; letter-spacing:0.5px;">
@@ -109,29 +117,26 @@
             <span>Registered Fleet</span>
             <span id="deviceCountPill" class="devices-count-pill">0</span>
           </div>
-          <button id="openAddDeviceBtn" class="btn-add-primary">+ Add Device</button>
+          <button class="btn-add-primary" id="openAddModalBtn">
+            <span style="font-size:16px;">+</span>
+            <span>Add Target</span>
+          </button>
         </div>
-        <div id="deviceGrid" class="device-grid"></div>
+
+        <div id="fleetCards" class="fleet-grid"></div>
       </div>
     </main>
   </div>
 
-  <!-- Add / Edit Device Modal -->
+  <!-- Add Target Modal -->
   <div id="deviceModal" class="modal-backdrop">
     <div class="modal">
       <div class="modal-header">
-        <h3 id="modalTitle">Add Target Device</h3>
+        <h3 id="modalTitle">Register Target Device</h3>
         <button type="button" class="modal-close" id="closeModalBtn" title="Close">&#x2715;</button>
       </div>
 
       <form id="deviceForm" class="modal-form">
-        <input type="hidden" id="deviceId">
-        <input type="hidden" id="deviceType" value="android">
-
-        <!-- Platform Segmented Selector -->
-        <div class="platform-selector-group">
-          <label class="platform-selector-label">Target Platform</label>
-          <div class="platform-pill-grid">
             <button type="button" class="platform-pill-btn active android" id="platformBtnAndroid" data-type="android">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993.0001.5511-.4483.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993 0 .5511-.4482.9997-.9993.9997m11.4045-6.02l1.997-3.459c.125-.2164.051-.4972-.165-.6222-.216-.125-.497-.051-.622.165l-2.023 3.504C15.421 8.358 13.766 8 12 8s-3.421.358-5.068.909L4.909 5.405c-.125-.216-.406-.29-.622-.165-.216.125-.29.4058-.165.6222l1.997 3.459C2.688 11.171 0 14.887 0 19.25h24c0-4.363-2.688-8.079-6.1185-9.9286"/></svg>
               <span>Android Platform</span>
@@ -178,6 +183,18 @@
           <button type="submit" class="btn-primary" id="modalSubmitBtn">Save Device</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Device Health Deep Telemetry Modal -->
+  <div id="deviceHealthModal" class="modal-backdrop">
+    <div class="modal" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3 id="healthModalTitle">Device Health & Telemetry</h3>
+        <button type="button" class="modal-close" id="closeHealthModalBtn" title="Close">&#x2715;</button>
+      </div>
+
+      <div id="healthModalContent" style="margin-top:16px; display:flex; flex-direction:column; gap:12px;"></div>
     </div>
   </div>
 
