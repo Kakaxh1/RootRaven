@@ -505,44 +505,6 @@ async function renderDashboard() {
     };
   }
 
-  // --- CA Certificate Installer binding ---
-  const certDeviceSelect = document.getElementById("certDeviceSelect");
-  const certFileInput = document.getElementById("certFileInput");
-  const uploadCertBtn = document.getElementById("uploadCertBtn");
-  
-  if (certDeviceSelect && certFileInput && uploadCertBtn) {
-    const androidDevices = devices.filter(d => d.type === "android");
-    certDeviceSelect.innerHTML = androidDevices.length
-      ? androidDevices.map(d => `<option value="${d.id}">${d.name} (${d.ip})</option>`).join("")
-      : "<option value=''>No Android Devices</option>";
-      
-    uploadCertBtn.onclick = () => {
-      if (!certDeviceSelect.value) {
-        toast("Please register and select an Android device first");
-        return;
-      }
-      certFileInput.click();
-    };
-    
-    certFileInput.onchange = async () => {
-      if (!certFileInput.files.length) return;
-      const fd = new FormData();
-      fd.append("device_id", certDeviceSelect.value);
-      fd.append("file", certFileInput.files[0]);
-      toast("Installing CA Certificate...");
-      try {
-        const res = await fetch("/api/cert/install", { method: "POST", body: fd }).then(r => r.json());
-        toast(res.message || "CA Certificate Installation completed");
-        debugLog(`CA Certificate: ${res.message || "completed"}`);
-      } catch (err) {
-        toast("Error: " + err.message);
-      }
-      certFileInput.value = "";
-    };
-  }
-
-
-
   setupLogsPanel(devices);
 
   // --- Network ADB Shell Console binding ---
